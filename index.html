@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#12100d" />
+    <meta
+      name="description"
+      content="이블헌터타이쿤의 공격력, 치명타, 공격속도와 대상별 데미지를 계산합니다."
+    />
+    <title>Hunter Lab · 이블헌터타이쿤 데미지 계산기</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="access-gate" id="access-gate" aria-labelledby="access-title">
+      <form class="access-card" id="access-form">
+        <div class="access-emblem" aria-hidden="true">H</div>
+        <p class="eyebrow">Private Access</p>
+        <h1 id="access-title">헌터 전용 계산기</h1>
+        <p class="access-copy">공유받은 접속 코드를 입력하면 계산기를 사용할 수 있습니다.</p>
+        <label class="access-field">
+          <span>접속 코드</span>
+          <input id="access-code" type="password" autocomplete="off" placeholder="코드를 입력하세요" required />
+        </label>
+        <button class="access-button" type="submit">계산기 입장</button>
+        <p class="access-error" id="access-error" role="alert" aria-live="polite"></p>
+        <small>코드는 계산기 공유자에게 문의해 주세요.</small>
+      </form>
+    </section>
+
+    <div class="app-shell is-locked" id="app-shell" aria-hidden="true">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Hunter Lab 홈">
+          <span class="brand-mark" aria-hidden="true">H</span>
+          <span>
+            <b>HUNTER LAB</b>
+            <small>Damage Calculator</small>
+          </span>
+        </a>
+        <div class="topbar-tools">
+          <div class="topbar-copy">
+            <span class="status-dot" aria-hidden="true"></span>
+            엑셀 v1.0.4 기반
+          </div>
+          <button class="lock-button" id="lock-app" type="button">잠그기</button>
+        </div>
+      </header>
+
+      <nav class="view-tabs" aria-label="계산기 메뉴">
+        <button class="tab is-active" type="button" data-view-target="calculator">데미지 계산</button>
+        <button class="tab" type="button" data-view-target="base-settings">기본세팅</button>
+        <button class="tab" type="button" data-view-target="comparison">설정 비교</button>
+        <button class="tab" type="button" data-view-target="defense">방어력</button>
+        <button class="tab" type="button" data-view-target="verifier">데미지 검증</button>
+        <button class="tab" type="button" data-view-target="storage">저장 / 로드</button>
+      </nav>
+
+      <main>
+        <section class="view is-active" id="calculator" data-view="calculator">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">GOD 데미지 계산기</p>
+              <h1>내 헌터의 실제 화력을 계산하세요</h1>
+              <p>노란 입력칸만 바꾸면 PvE·PvP 결과가 즉시 갱신됩니다.</p>
+            </div>
+            <button class="ghost-button" id="reset-main" type="button">기본값으로 초기화</button>
+          </div>
+
+          <div class="calculator-layout">
+            <form class="input-column" id="main-form">
+              <details class="input-card" open>
+                <summary>
+                  <span class="step">01</span>
+                  <span><b>핵심 공격 정보</b><small>헌터 정보창과 무기에서 확인</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid">
+                  <label class="field field-wide">
+                    <span>허수아비에서 본 공격력 <em>필수</em></span>
+                    <input data-key="measuredAttack" inputmode="decimal" type="number" min="0" />
+                    <small>엑셀의 ‘허수아비(보스)상 헌터 공격력’</small>
+                  </label>
+                  <label class="field">
+                    <span>고유 공격력</span>
+                    <input data-key="baseAttack" inputmode="decimal" type="number" min="0" step="0.01" />
+                  </label>
+                  <label class="field">
+                    <span>무기 공격력</span>
+                    <input data-key="weaponAttack" inputmode="decimal" type="number" min="0" />
+                  </label>
+                  <label class="field">
+                    <span>무기 공격속도</span>
+                    <input data-key="weaponSpeed" inputmode="decimal" type="number" min="0" step="0.01" />
+                  </label>
+                  <label class="field">
+                    <span>퓨리</span>
+                    <input data-key="fury" inputmode="numeric" type="number" min="0" step="1" />
+                  </label>
+                </div>
+              </details>
+
+              <details class="input-card" open>
+                <summary>
+                  <span class="step">02</span>
+                  <span><b>헌터 기본 설정</b><small>등급과 직업에 따른 기본 보정</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid">
+                  <label class="field">
+                    <span>헌터 등급</span>
+                    <select data-key="grade">
+                      <option>H</option><option>H+</option><option>L</option><option>L+</option><option>U</option><option>U+</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>직업군</span>
+                    <select data-key="job">
+                      <option>버서커</option><option>팔라딘</option><option>다크나이트</option><option>레인저</option><option>소서러</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>승전 순위</span>
+                    <select data-key="victoryRank">
+                      <option>1~3</option><option>4~10</option><option>11~20</option><option>순위 밖</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>지하던전 층수</span>
+                    <input data-key="dungeonFloor" inputmode="numeric" type="number" min="125" />
+                  </label>
+                </div>
+              </details>
+
+              <details class="input-card">
+                <summary>
+                  <span class="step">03</span>
+                  <span><b>장비 핵심 옵션</b><small>룬과 장비 옵션 합계</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid compact-grid">
+                  <label class="field"><span>룬 공격력 %</span><input data-key="runeAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>장비 공격력 %</span><input data-key="gearAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>룬 치명타 피해 %</span><input data-key="runeCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>장비 치명타 피해 %</span><input data-key="gearCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>룬 치명타 확률 %</span><input data-key="runeCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>장비 치명타 확률 %</span><input data-key="gearCrit" type="number" step="0.1" /></label>
+                </div>
+              </details>
+
+              <details class="input-card">
+                <summary>
+                  <span class="step">04</span>
+                  <span><b>공용·마을 보너스</b><small>연합, 건물, 도감, 펫 수치</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid compact-grid">
+                  <p class="field-section-label">연합 버프</p>
+                  <label class="field"><span>공격력 %</span><input data-key="unionAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격속도 %</span><input data-key="unionAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 확률 %</span><input data-key="unionCrit" type="number" step="0.1" /></label>
+                  <p class="field-section-label">건물</p>
+                  <label class="field"><span>이동속도 %</span><input data-key="buildingMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 피해 %</span><input data-key="buildingCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격력 %</span><input data-key="buildingAttack" type="number" step="0.1" /></label>
+                  <p class="field-section-label">도감</p>
+                  <label class="field"><span>공격력 %</span><input data-key="collectionAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 피해 %</span><input data-key="collectionCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 확률 %</span><input data-key="collectionCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>보스 피해 %</span><input data-key="collectionBoss" type="number" step="0.1" /></label>
+                  <label class="field"><span>영장 피해 %</span><input data-key="collectionLord" type="number" step="0.1" /></label>
+                  <label class="field"><span>악마 피해 %</span><input data-key="collectionDemon" type="number" step="0.1" /></label>
+                  <label class="field"><span>언데드 피해 %</span><input data-key="collectionUndead" type="number" step="0.1" /></label>
+                  <label class="field"><span>동물 피해 %</span><input data-key="collectionAnimal" type="number" step="0.1" /></label>
+                  <p class="field-section-label">기타 공용 수치</p>
+                  <label class="field"><span>코스튬 이동속도 %</span><input data-key="costumeMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>코스튬 치명타 피해 %</span><input data-key="costumeCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>코스튬 공격력 보정 %</span><input data-key="costumeAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>인장 이동속도 %</span><input data-key="sealMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>인장 공격력 %</span><input data-key="sealAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>마을펫 치명타 피해 %</span><input data-key="townPetCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>마을펫 공격력 %</span><input data-key="townPetAttack" type="number" step="0.1" /></label>
+                </div>
+              </details>
+
+              <details class="input-card">
+                <summary>
+                  <span class="step">05</span>
+                  <span><b>헌터·펫 세부 수치</b><small>라이딩펫, 스탯, 비법서, 영웅</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid compact-grid">
+                  <p class="field-section-label">라이딩펫</p>
+                  <label class="field"><span>이동속도 %</span><input data-key="ridingMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격속도 %</span><input data-key="ridingAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 확률 %</span><input data-key="ridingCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>치명타 피해 %</span><input data-key="ridingCritDamage" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격력 %</span><input data-key="ridingAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>모든 종족 피해 %</span><input data-key="ridingMonster" type="number" step="0.1" /></label>
+                  <p class="field-section-label">헌터 스탯</p>
+                  <label class="field"><span>요정 공격력 %</span><input data-key="fairyAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>스탯 공격력 %</span><input data-key="statAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>스탯 공격속도 %</span><input data-key="statAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>스탯 치명타 확률 %</span><input data-key="statCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>태생 치명타 확률 %</span><input data-key="naturalCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>퀴큰 %</span><input data-key="quickening" type="number" step="10" /></label>
+                  <p class="field-section-label">비법서·성격·영웅</p>
+                  <label class="field"><span>비법서 이동속도 %</span><input data-key="secretMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>비법서 공격속도 %</span><input data-key="secretAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>비법서 치명타 확률 %</span><input data-key="secretCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>비법서 공격력 %</span><input data-key="secretAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>성격 이동속도 %</span><input data-key="personalityMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>성격 공격속도 %</span><input data-key="personalityAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>성격 치명타 확률 %</span><input data-key="personalityCrit" type="number" step="0.1" /></label>
+                  <label class="field"><span>성격 공격력 %</span><input data-key="personalityAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>영웅 공격력 %</span><input data-key="heroAttack" type="number" step="0.1" /></label>
+                  <label class="field"><span>영웅 치명타 피해 %</span><input data-key="heroCritDamage" type="number" step="0.1" /></label>
+                </div>
+              </details>
+
+              <details class="input-card">
+                <summary>
+                  <span class="step">06</span>
+                  <span><b>장비 전체 옵션</b><small>이속·공속·종족 피해까지 직접 입력</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="field-grid compact-grid">
+                  <p class="field-section-label">룬</p>
+                  <label class="field"><span>이동속도 %</span><input data-key="runeMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격속도 %</span><input data-key="runeAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>보스 피해 %</span><input data-key="runeBoss" type="number" step="0.1" /></label>
+                  <label class="field"><span>영장 피해 %</span><input data-key="runeLord" type="number" step="0.1" /></label>
+                  <label class="field"><span>악마 피해 %</span><input data-key="runeDemon" type="number" step="0.1" /></label>
+                  <label class="field"><span>언데드 피해 %</span><input data-key="runeUndead" type="number" step="0.1" /></label>
+                  <label class="field"><span>동물 피해 %</span><input data-key="runeAnimal" type="number" step="0.1" /></label>
+                  <p class="field-section-label">장비</p>
+                  <label class="field"><span>이동속도 %</span><input data-key="gearMove" type="number" step="0.1" /></label>
+                  <label class="field"><span>공격속도 %</span><input data-key="gearAttackSpeed" type="number" step="0.1" /></label>
+                  <label class="field"><span>보스 피해 %</span><input data-key="gearBoss" type="number" step="0.1" /></label>
+                  <label class="field"><span>영장 피해 %</span><input data-key="gearLord" type="number" step="0.1" /></label>
+                  <label class="field"><span>악마 피해 %</span><input data-key="gearDemon" type="number" step="0.1" /></label>
+                  <label class="field"><span>언데드 피해 %</span><input data-key="gearUndead" type="number" step="0.1" /></label>
+                  <label class="field"><span>동물 피해 %</span><input data-key="gearAnimal" type="number" step="0.1" /></label>
+                  <label class="field"><span>몬스터 피해 %</span><input data-key="gearMonster" type="number" step="0.1" /></label>
+                  <label class="field"><span>헌터 피해 %</span><input data-key="gearHunter" type="number" step="0.1" /></label>
+                  <label class="field"><span>영피 %</span><input data-key="gearSpirit" type="number" step="0.1" /></label>
+                  <label class="field"><span>미덕 몬스터 피해 %</span><input data-key="virtueMonster" type="number" step="0.1" /></label>
+                  <label class="field"><span>신강 공격력 %</span><input data-key="sacredAttack" type="number" step="0.1" /></label>
+                </div>
+              </details>
+
+              <details class="input-card">
+                <summary>
+                  <span class="step">07</span>
+                  <span><b>증폭 효과</b><small>A·B·C·개별 그룹의 장착 상태</small></span>
+                  <span class="summary-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="amplification-editor" id="amplification-editor"></div>
+              </details>
+
+              <div class="profile-actions">
+                <button class="primary-button" id="save-profile" type="button">지금 저장</button>
+                <button class="ghost-button" id="load-profile" type="button">자동 저장값 다시 불러오기</button>
+              </div>
+            </form>
+
+            <aside class="result-column" aria-live="polite">
+              <div class="result-hero">
+                <div class="result-label"><span class="status-dot"></span> 실시간 계산 결과</div>
+                <p>보스 기대 화력</p>
+                <strong id="hero-damage">0</strong>
+                <span id="hero-unit">초공·치확 반영</span>
+              </div>
+
+              <div class="metric-grid">
+                <article><span>PvE 공격력</span><strong id="pve-attack">0</strong></article>
+                <article><span>PvP 공격력</span><strong id="pvp-attack">0</strong></article>
+                <article><span>치명타 확률</span><strong id="crit-chance">0%</strong></article>
+                <article><span>행동 간격</span><strong id="action-gap">0초</strong></article>
+              </div>
+
+              <section class="damage-board">
+                <div class="section-title-row">
+                  <div><span class="mini-icon">⚔</span><b>대상별 데미지</b></div>
+                  <select id="display-unit" aria-label="데미지 표시 단위">
+                    <option value="1">원본</option>
+                    <option value="1000">K</option>
+                    <option value="1000000">M</option>
+                    <option value="1000000000">B</option>
+                  </select>
+                </div>
+                <div class="damage-table" id="damage-table"></div>
+              </section>
+
+              <div class="result-note">
+                <b>계산 기준</b>
+                <span>평타 기준이며 입력값 변경 즉시 다시 계산됩니다.</span>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="base-settings" data-view="base-settings">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Account Base</p>
+              <h1>기본세팅</h1>
+              <p>내 계정에서 변하지 않는 공용 수치를 한 번만 기록하는 공간입니다.</p>
+            </div>
+            <span class="feature-badge">준비 중</span>
+          </div>
+          <div class="base-settings-preview">
+            <section class="tool-card base-settings-card">
+              <div class="tool-card-title"><span>01</span><div><b>계정 공용 수치</b><small>세부 항목은 전달받은 뒤 이곳에 추가합니다.</small></div></div>
+              <div class="base-settings-empty">
+                <div class="empty-emblem" aria-hidden="true">✦</div>
+                <div>
+                  <b>기본세팅 입력란이 들어갈 자리입니다</b>
+                  <p>도감, 건물, 연합, 펫처럼 헌터마다 반복해서 입력할 필요가 없는 수치를 모아둘 예정입니다.</p>
+                </div>
+              </div>
+            </section>
+            <aside class="base-settings-flow">
+              <span>활용 방식</span>
+              <strong>한 번 입력 → 모든 계산에 자동 반영</strong>
+              <p>나중에 세부 수치를 추가하면 기본세팅 값이 데미지 계산, 설정 비교, 방어력 계산에 연결되도록 구성합니다.</p>
+              <div class="flow-chips"><span>자동 저장</span><span>계산기 연동</span><span>백업 포함</span></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="comparison" data-view="comparison">
+          <div class="page-heading">
+            <div><p class="eyebrow">Comparison</p><h1>두 설정을 한눈에 비교</h1><p>엑셀 비교계산기처럼 핵심 옵션을 좌우로 바꿔 결과 차이를 확인합니다.</p></div>
+            <button class="ghost-button" id="copy-main-to-compare" type="button">현재 설정을 양쪽에 복사</button>
+          </div>
+          <div class="compare-grid">
+            <section class="compare-card" data-compare="a">
+              <div class="compare-title"><span>A</span><div><b>현재 설정</b><small>기준이 되는 헌터</small></div></div>
+              <div class="compare-fields"></div>
+              <div class="compare-result" id="compare-result-a"></div>
+            </section>
+            <div class="versus-badge">VS</div>
+            <section class="compare-card" data-compare="b">
+              <div class="compare-title"><span>B</span><div><b>비교 설정</b><small>바꾸려는 장비나 스탯</small></div></div>
+              <div class="compare-fields"></div>
+              <div class="compare-result" id="compare-result-b"></div>
+            </section>
+          </div>
+          <section class="comparison-summary" id="comparison-summary"></section>
+        </section>
+        <section class="view" id="defense" data-view="defense">
+          <div class="page-heading">
+            <div><p class="eyebrow">Defense</p><h1>방어력 계산기</h1><p>착용 장비의 방어력과 옵션 보너스를 엑셀식으로 합산합니다.</p></div>
+            <button class="ghost-button" id="reset-defense" type="button">기본값으로 초기화</button>
+          </div>
+          <div class="tool-layout">
+            <section class="tool-card">
+              <div class="tool-card-title"><span>🛡</span><div><b>장비 방어력</b><small>사용할 장비를 켜고 방어력을 입력하세요.</small></div></div>
+              <div class="defense-equipment" id="defense-equipment"></div>
+            </section>
+            <section class="tool-card">
+              <div class="tool-card-title"><span>✦</span><div><b>방어력 옵션</b><small>빨간 박스에 입력하던 수치입니다.</small></div></div>
+              <div class="field-grid defense-fields" id="defense-stats"></div>
+            </section>
+            <aside class="defense-result" aria-live="polite">
+              <span>최종 방어력</span><strong id="defense-total">0</strong>
+              <dl id="defense-breakdown"></dl>
+            </aside>
+          </div>
+        </section>
+        <section class="view" id="verifier" data-view="verifier">
+          <div class="page-heading">
+            <div><p class="eyebrow">Verifier</p><h1>데미지 검증기</h1><p>실제 데미지 두 개 이상을 넣어 공통으로 반복되는 기준값을 찾습니다.</p></div>
+            <button class="ghost-button" id="reset-verifier" type="button">입력 지우기</button>
+          </div>
+          <div class="verifier-layout">
+            <section class="tool-card">
+              <div class="tool-card-title"><span>01</span><div><b>실제 데미지 입력</b><small>게임에서 확인한 숫자를 2개 이상 입력하세요.</small></div></div>
+              <div class="verifier-controls">
+                <label class="field"><span>허용 오차</span><select id="verifier-error"><option value="10">10</option><option value="100">100</option><option value="1000">1,000</option></select></label>
+              </div>
+              <div class="verifier-inputs" id="verifier-inputs"></div>
+            </section>
+            <section class="tool-card verifier-results">
+              <div class="tool-card-title"><span>02</span><div><b>중복 기준값</b><small>여러 입력에서 공통으로 나타난 후보입니다.</small></div></div>
+              <div id="verifier-results"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="storage" data-view="storage">
+          <div class="page-heading">
+            <div>
+              <p class="eyebrow">Backup Center</p>
+              <h1>저장 및 복구</h1>
+              <p>이 브라우저에 자동 저장하고, 전체 내용을 파일로 옮겨 다른 기기에서도 복구할 수 있습니다.</p>
+            </div>
+          </div>
+          <div class="storage-layout">
+            <section class="storage-card storage-status-card">
+              <div class="storage-icon" aria-hidden="true">✓</div>
+              <div>
+                <span>브라우저 자동 저장</span>
+                <strong id="storage-status">자동 저장 사용 중</strong>
+                <p id="storage-time">입력값이 변경될 때마다 이 기기에 저장됩니다.</p>
+              </div>
+            </section>
+
+            <section class="storage-card">
+              <div class="storage-card-heading">
+                <div><span class="step">01</span><b>전체 백업 파일 만들기</b></div>
+                <small>JSON 파일</small>
+              </div>
+              <p>데미지 계산, 비교, 방어력, 검증기에 입력한 모든 내용을 파일 하나에 담습니다.</p>
+              <button class="primary-button storage-action" id="export-backup" type="button">전체 내용 다운로드</button>
+            </section>
+
+            <section class="storage-card">
+              <div class="storage-card-heading">
+                <div><span class="step">02</span><b>백업 파일로 복구하기</b></div>
+                <small>다른 기기에서도 가능</small>
+              </div>
+              <p>전에 내려받은 JSON 파일을 선택하면 현재 계산기 내용이 파일의 값으로 바뀝니다.</p>
+              <label class="file-button" for="import-backup">백업 파일 선택</label>
+              <input class="backup-file-input" id="import-backup" type="file" accept=".json,application/json" />
+            </section>
+
+            <div class="storage-message" id="storage-message" role="status" aria-live="polite">
+              <b>기억해 주세요</b>
+              <span>브라우저 데이터를 삭제하면 자동 저장값도 지워집니다. 중요한 설정은 백업 파일로 내려받아 보관하세요.</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
