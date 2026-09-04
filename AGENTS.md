@@ -24,7 +24,7 @@
 - `docs/현재상태.md`: 완료 기능, 보류 기능, 다음 작업과 세션 인계 상태
 - `docs/참고자료.md`: 원본 자료와 공식 문서의 위치 및 용도
 - 코드 변경 이력: Git 커밋으로 관리하며 별도 구현 히스토리 문서를 만들지 않습니다.
-- 공식 조사 이력: `C:\Users\Public\Shared\DamageCalculator\docs\히스토리.md`에서 관리합니다.
+- 공식 조사 이력: `DamageCalculator/docs/히스토리.md`에서 관리합니다.
 
 ## 기록 위치 판단
 
