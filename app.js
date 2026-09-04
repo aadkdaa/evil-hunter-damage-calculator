@@ -1,6 +1,6 @@
 const STORAGE_KEY = "evil-hunter-calculator-state-v3";
 const LEGACY_PROFILE_KEY = "evil-hunter-damage-profile";
-const STATE_VERSION = 5;
+const STATE_VERSION = 6;
 
 const BASE_SETTING_DEFAULTS = Object.freeze({
   victoryAttack: 12,
@@ -44,14 +44,108 @@ const BASE_SETTING_DEFAULTS = Object.freeze({
   townPetDefense: 10,
 });
 const BASE_SETTING_KEYS = new Set(Object.keys(BASE_SETTING_DEFAULTS));
+const DAMAGE2_FIXED_VALUES = Object.freeze({
+  sacredAttack: 90,
+});
+const DAMAGE2_PERSONALITIES = Object.freeze({
+  strong: Object.freeze({ label: "힘이 쎈", attack: 10, movement: 0 }),
+  heroic: Object.freeze({ label: "영웅심리", attack: 7, movement: 7 }),
+});
+const DAMAGE2_GRADES = Object.freeze({
+  H: Object.freeze({ label: "H", attack: 3, defense: 3, health: 3, movement: 10 }),
+  "H+": Object.freeze({ label: "H+", attack: 4, defense: 4, health: 4, movement: 10 }),
+  L: Object.freeze({ label: "L", attack: 5, defense: 5, health: 5, movement: 20 }),
+  "L+": Object.freeze({ label: "L+", attack: 6, defense: 6, health: 6, movement: 20 }),
+  U: Object.freeze({ label: "U", attack: 7, defense: 7, health: 7, movement: 30 }),
+  "U+": Object.freeze({ label: "U+", attack: 8, defense: 8, health: 8, movement: 30 }),
+});
+const DAMAGE2_SELECT_OPTIONS = Object.freeze({
+  personality: DAMAGE2_PERSONALITIES,
+  grade: DAMAGE2_GRADES,
+});
+const DAMAGE2_EQUIPMENT_SLOTS = Object.freeze([
+  // 체력 옵션은 체력 계산 확장 시 chaosOptions에 "health"를 다시 추가합니다.
+  Object.freeze({ key: "weapon", label: "무기", chaosOptions: ["critDamage"] }),
+  Object.freeze({ key: "armor", label: "갑옷", chaosOptions: ["attack"] }),
+  Object.freeze({ key: "gloves", label: "장갑", chaosOptions: ["attack"] }),
+  Object.freeze({ key: "shoes", label: "신발", chaosOptions: ["attack"] }),
+  Object.freeze({ key: "helmet", label: "투구", chaosOptions: ["boss"] }),
+  Object.freeze({ key: "necklace", label: "목걸이", chaosOptions: ["critDamage"] }),
+  Object.freeze({ key: "ring", label: "반지", chaosOptions: ["critDamage"] }),
+  Object.freeze({ key: "belt", label: "벨트", chaosOptions: ["boss"] }),
+]);
+const DAMAGE2_CHAOS_OPTIONS = Object.freeze({
+  attack: "공격력",
+  critDamage: "치명타 피해",
+  // health: "체력", // 체력 계산 확장 시 복원
+  boss: "보스 피해",
+});
+const DAMAGE2_GEAR_OPTIONS = Object.freeze({
+  attack: "공격력",
+  // defense: "방어력", // 방어력 계산 확장 시 복원
+  // health: "체력", // 체력 계산 확장 시 복원
+  critDamage: "치명타 피해",
+  demon: "악마 피해",
+  lord: "영장 피해",
+  boss: "보스 피해",
+  undead: "언데드 피해",
+  animal: "동물 피해",
+});
+const DAMAGE2_EQUIPMENT_TOTAL_FIELDS = Object.freeze([
+  Object.freeze(["gearAttack", "공격력"]),
+  Object.freeze(["gearCritDamage", "치명타 피해"]),
+  Object.freeze(["gearDemon", "악마 피해"]),
+  Object.freeze(["gearLord", "영장 피해"]),
+  Object.freeze(["gearBoss", "보스 피해"]),
+  Object.freeze(["gearUndead", "언데드 피해"]),
+  Object.freeze(["gearAnimal", "동물 피해"]),
+]);
+const DAMAGE2_UNIQUE_STAGES = Object.freeze({
+  "1": "1단계",
+  "2": "2단계",
+  "3": "3단계",
+});
+const DAMAGE2_UNIQUE_CONFIG = Object.freeze({
+  gloves: Object.freeze({
+    control: "stage",
+    options: Object.freeze({ none: "없음", blood: "블피", trueBlood: "진블피" }),
+  }),
+  shoes: Object.freeze({
+    control: "value",
+    options: Object.freeze({ none: "없음", gale: "질풍", trueGale: "진질풍" }),
+  }),
+  necklace: Object.freeze({
+    control: "stage",
+    options: Object.freeze({ none: "없음", dragon: "용목" }),
+  }),
+});
+const DAMAGE2_GLOVE_CRIT_DAMAGE = Object.freeze({
+  blood: Object.freeze({ "1": 120, "2": 150, "3": 200 }),
+  trueBlood: Object.freeze({ "1": 170, "2": 200, "3": 250 }),
+});
+const DAMAGE2_NECKLACE_ATTACK_AMP = Object.freeze({ "1": 5, "2": 10, "3": 20 });
+
+function createDamage2EquipmentDefaults() {
+  const defaultOptionTypes = ["attack", "critDamage", "demon"];
+  return Object.fromEntries(DAMAGE2_EQUIPMENT_SLOTS.map(({ key, chaosOptions }) => {
+    const uniqueConfig = DAMAGE2_UNIQUE_CONFIG[key];
+    const unique = uniqueConfig
+      ? { unique: uniqueConfig.control === "stage" ? { type: "none", stage: "1" } : { type: "none", value: 10 } }
+      : {};
+    return [key, {
+      chaos: { type: chaosOptions[0], value: 0 },
+      options: defaultOptionTypes.map((type) => ({ type, value: 0 })),
+      ...unique,
+    }];
+  }));
+}
 
 const DAMAGE2_DEFAULTS = Object.freeze({
   weaponAttack: 1742004,
   weaponSpeed: 2,
   baseAttack: 1023.75,
-  sacredAttack: 90,
-  personalityAttack: 7,
-  personalityMove: 7,
+  personality: "heroic",
+  grade: "L+",
   heroAttack: 50,
   unionArenaAttack: 5,
   skillAttackAmp: 50,
@@ -60,10 +154,6 @@ const DAMAGE2_DEFAULTS = Object.freeze({
   statHealth: 10,
   statAttack: 20,
   statDefense: 20,
-  gradeMove: 20,
-  gradeHealth: 6,
-  gradeAttack: 6,
-  gradeDefense: 6,
   costumeAttack: 6,
   costumeMove: 60,
   costumeHealth: 4,
@@ -78,6 +168,7 @@ const DAMAGE2_DEFAULTS = Object.freeze({
   ridingMove: 75,
   fairyAttack: 2,
   fairyDefense: 2,
+  fairyHealth: 2,
   companionHealth: 0,
   improvementMonsterDamage: 30,
   secretHealth: 15,
@@ -86,30 +177,65 @@ const DAMAGE2_DEFAULTS = Object.freeze({
   secretMove: 15,
   runeAttack: 28,
   runeMove: 16,
+  runeDemon: 0,
+  runeLord: 0,
   runeBoss: 36,
+  runeUndead: 0,
+  runeAnimal: 0,
   runeCritDamage: 31,
   gearAttack: 226,
   gearMove: 43,
+  gearDemon: 0,
   gearLord: 27,
   gearBoss: 348,
+  gearUndead: 0,
+  gearAnimal: 0,
   gearCritDamage: 605,
   gearMonsterDamage: 35,
+  equipmentInputMode: "total",
+  equipment: createDamage2EquipmentDefaults(),
 });
 
 const DAMAGE2_SECTIONS = [
-  { title: "무기", fields: [["weaponAttack", "무기 공격력", ""], ["weaponSpeed", "무기 공격속도", ""]] },
-  { title: "공격력 계산값", fields: [["baseAttack", "헌터 고유공격력", ""], ["sacredAttack", "신강 공격력", "%"], ["personalityAttack", "성격 공격력", "%"], ["personalityMove", "성격 이동속도", "%"], ["heroAttack", "영웅스킬 공격력", "%"], ["unionArenaAttack", "연합 콜로세움 공격력", "%"], ["skillAttackAmp", "스킬 공격력 증폭", "%"], ["gustRate", "질풍 변환율", "%"], ["displayedAttack", "게임 표시 공격력", ""]] },
-  { title: "헌터 스텟 등급 효과", fields: [["statAttack", "공격력", "%"], ["statDefense", "방어력", "%"], ["statHealth", "체력", "%"]] },
-  { title: "헌터 등급 버프", fields: [["gradeAttack", "공격력", "%"], ["gradeDefense", "방어력", "%"], ["gradeHealth", "체력", "%"], ["gradeMove", "이동속도", "%"]] },
-  { title: "코스튬 버프", fields: [["costumeAttack", "공격력", "%"], ["costumeHealth", "체력", "%"], ["costumeMove", "이동속도", "%"]] },
-  { title: "인장 버프", fields: [["sealAttack", "공격력", "%"], ["sealMove", "이동속도", "%"]] },
-  { title: "라이딩펫 버프", fields: [["ridingAttack", "공격력", "%"], ["ridingDefense", "방어력", "%"], ["ridingHealth", "체력", "%"], ["ridingCritDamage", "치명타 피해", "%"], ["ridingMove", "이동속도", "%"], ["ridingAllSpecies", "모든 종족 피해", "%"], ["ridingDamageReduction", "받는 피해 감소", "%"]] },
-  { title: "요정 버프", fields: [["fairyAttack", "공격력", "%"], ["fairyDefense", "방어력", "%"]] },
-  { title: "컴패 버프", fields: [["companionHealth", "체력", "%"]] },
+  { title: "헌터정보", fields: [["baseAttack", "헌터 고유공격력", ""], ["displayedAttack", "게임 표시 공격력", ""], ["grade", "헌터 등급", ""], ["personality", "성격", ""]] },
+  { title: "장비옵션", type: "equipment" },
+  { title: "코스튬 버프", fields: [
+    ["costumeAttack", "공격력", "%"],
+    // ["costumeHealth", "체력", "%"], // 체력 계산 확장 시 복원
+    // ["costumeMove", "이동속도", "%"], // 이동속도 입력 복원 시 사용
+  ] },
+  { title: "인장 버프", fields: [
+    ["sealAttack", "공격력", "%"],
+    // ["sealMove", "이동속도", "%"], // 이동속도 입력 복원 시 사용
+  ] },
+  { title: "라이딩펫 버프", fields: [
+    ["ridingAttack", "공격력", "%"],
+    // ["ridingDefense", "방어력", "%"], // 방어력 계산 확장 시 복원
+    // ["ridingHealth", "체력", "%"], // 체력 계산 확장 시 복원
+    ["ridingCritDamage", "치명타 피해", "%"],
+    // ["ridingMove", "이동속도", "%"], // 이동속도 입력 복원 시 사용
+    ["ridingAllSpecies", "모든 종족 피해", "%"],
+    // ["ridingDamageReduction", "받는 피해 감소", "%"], // 받는 피해 감소 입력 복원 시 사용
+  ] },
+  { title: "요정 버프", fields: [
+    ["fairyAttack", "공격력", "%"],
+    // ["fairyDefense", "방어력", "%"], // 방어력 계산 확장 시 복원
+    // ["fairyHealth", "체력", "%"], // 체력 계산 확장 시 복원
+  ] },
+  // { title: "컴패 버프", fields: [["companionHealth", "체력", "%"]] }, // 체력 계산 확장 시 복원
   { title: "개량 옵션", fields: [["improvementMonsterDamage", "몬스터 피해", "%"]] },
-  { title: "비법", fields: [["secretAttack", "공격력", "%"], ["secretDefense", "방어력", "%"], ["secretHealth", "체력", "%"], ["secretMove", "이동속도", "%"]] },
-  { title: "룬", fields: [["runeAttack", "공격력", "%"], ["runeCritDamage", "치명타 피해", "%"], ["runeMove", "이동속도", "%"], ["runeBoss", "보스 피해", "%"]] },
-  { title: "장비 옵션", fields: [["gearAttack", "전체 공격력", "%"], ["gearCritDamage", "치명타 피해", "%"], ["gearMove", "이동속도", "%"], ["gearLord", "영장 피해", "%"], ["gearBoss", "보스 피해", "%"], ["gearMonsterDamage", "몬스터 피해", "%"]] },
+  { title: "비법", fields: [
+    ["secretAttack", "공격력", "%"],
+    // ["secretDefense", "방어력", "%"], // 방어력 계산 확장 시 복원
+    // ["secretHealth", "체력", "%"], // 체력 계산 확장 시 복원
+    // ["secretMove", "이동속도", "%"], // 이동속도 입력 복원 시 사용
+  ] },
+  { title: "룬", fields: [
+    ["runeAttack", "공격력", "%"], ["runeCritDamage", "치명타 피해", "%"],
+    // ["runeMove", "이동속도", "%"], // 이동속도 입력 복원 시 사용
+    ["runeDemon", "악마 피해", "%"], ["runeLord", "영장 피해", "%"], ["runeBoss", "보스 피해", "%"],
+    ["runeUndead", "언데드 피해", "%"], ["runeAnimal", "동물 피해", "%"],
+  ] },
 ];
 
 const defaultProfile = {
@@ -377,6 +503,8 @@ function calculate(p) {
 
 function damage2Profile(state = damage2State) {
   const accountValues = {};
+  const grade = DAMAGE2_GRADES[state.grade] ?? DAMAGE2_GRADES[DAMAGE2_DEFAULTS.grade];
+  const equipmentTotals = damage2SelectedEquipmentTotals(state);
   BASE_SETTING_KEYS.forEach((key) => { accountValues[key] = profile[key]; });
   return {
     ...defaultProfile,
@@ -403,10 +531,11 @@ function damage2Profile(state = damage2State) {
     ridingAttack: num(state.ridingAttack),
     ridingMonster: num(state.ridingAllSpecies),
     fairyAttack: num(state.fairyAttack),
-    personalityMove: num(state.gradeMove),
+    fairyHealth: num(state.fairyHealth),
+    personalityMove: grade.movement,
     personalityAttackSpeed: 0,
     personalityCrit: 0,
-    personalityAttack: num(state.gradeAttack),
+    personalityAttack: grade.attack,
     statAttack: num(state.statAttack),
     statAttackSpeed: 0,
     statCrit: 0,
@@ -422,20 +551,20 @@ function damage2Profile(state = damage2State) {
     runeCritDamage: num(state.runeCritDamage),
     runeCrit: 0,
     runeBoss: num(state.runeBoss),
-    runeLord: 0,
-    runeDemon: 0,
-    runeUndead: 0,
-    runeAnimal: 0,
+    runeLord: num(state.runeLord),
+    runeDemon: num(state.runeDemon),
+    runeUndead: num(state.runeUndead),
+    runeAnimal: num(state.runeAnimal),
     gearMove: num(state.gearMove),
     gearAttackSpeed: 0,
-    gearAttack: num(state.gearAttack),
-    gearCritDamage: num(state.gearCritDamage),
+    gearAttack: equipmentTotals.attack,
+    gearCritDamage: equipmentTotals.critDamage,
     gearCrit: 0,
-    gearBoss: num(state.gearBoss),
-    gearLord: num(state.gearLord),
-    gearDemon: 0,
-    gearUndead: 0,
-    gearAnimal: 0,
+    gearBoss: equipmentTotals.boss,
+    gearLord: equipmentTotals.lord,
+    gearDemon: equipmentTotals.demon,
+    gearUndead: equipmentTotals.undead,
+    gearAnimal: equipmentTotals.animal,
     gearMonster: num(state.improvementMonsterDamage) + num(state.gearMonsterDamage),
     gearHunter: 0,
     gearSpirit: 0,
@@ -450,26 +579,83 @@ function damage2Profile(state = damage2State) {
   };
 }
 
-function damage2Totals(state = damage2State) {
+function damage2EquipmentUnique(state, slotKey) {
+  return state.equipment?.[slotKey]?.unique ?? DAMAGE2_DEFAULTS.equipment[slotKey]?.unique;
+}
+
+function damage2DirectEquipmentTotals(state) {
+  const totals = { attack: 0, critDamage: 0, demon: 0, lord: 0, boss: 0, undead: 0, animal: 0 };
+  DAMAGE2_EQUIPMENT_SLOTS.forEach(({ key }) => {
+    const slot = state.equipment?.[key];
+    if (!slot) return;
+    [slot.chaos, ...(slot.options || [])].forEach((option) => {
+      if (option && Object.prototype.hasOwnProperty.call(totals, option.type)) totals[option.type] += num(option.value);
+    });
+  });
+  totals.critDamage += damage2GloveCritDamage(state);
+  return totals;
+}
+
+function damage2SelectedEquipmentTotals(state) {
+  if (state.equipmentInputMode === "direct") return damage2DirectEquipmentTotals(state);
   return {
-    attack: ["statAttack", "gradeAttack", "costumeAttack", "sealAttack", "ridingAttack", "fairyAttack", "secretAttack", "runeAttack", "gearAttack"].reduce((sum, key) => sum + num(state[key]), 0),
-    defense: ["statDefense", "gradeDefense", "ridingDefense", "fairyDefense", "secretDefense"].reduce((sum, key) => sum + num(state[key]), 0),
-    health: ["statHealth", "gradeHealth", "costumeHealth", "ridingHealth", "companionHealth", "secretHealth"].reduce((sum, key) => sum + num(state[key]), 0),
-    movement: ["gradeMove", "costumeMove", "sealMove", "ridingMove", "secretMove", "runeMove", "gearMove"].reduce((sum, key) => sum + num(state[key]), 0),
-    critDamage: ["ridingCritDamage", "runeCritDamage", "gearCritDamage"].reduce((sum, key) => sum + num(state[key]), 0),
-    boss: num(state.runeBoss) + num(state.gearBoss),
+    attack: num(state.gearAttack),
+    critDamage: num(state.gearCritDamage) + damage2GloveCritDamage(state),
+    demon: num(state.gearDemon),
     lord: num(state.gearLord),
+    boss: num(state.gearBoss),
+    undead: num(state.gearUndead),
+    animal: num(state.gearAnimal),
+  };
+}
+
+function damage2GloveCritDamage(state) {
+  const unique = damage2EquipmentUnique(state, "gloves");
+  if (!unique || unique.type === "none") return 0;
+  return DAMAGE2_GLOVE_CRIT_DAMAGE[unique.type]?.[unique.stage] ?? 0;
+}
+
+function damage2NecklaceAttackAmp(state) {
+  const unique = damage2EquipmentUnique(state, "necklace");
+  if (!unique || unique.type !== "dragon") return 0;
+  return DAMAGE2_NECKLACE_ATTACK_AMP[unique.stage] ?? 0;
+}
+
+function damage2ShoesAttackAmp(state, movement) {
+  const unique = damage2EquipmentUnique(state, "shoes");
+  if (!unique || unique.type === "none") return 0;
+  const movementCap = unique.type === "trueGale" ? 400 : 300;
+  return Math.min(movement, movementCap) * num(unique.value) / 100;
+}
+
+function damage2Totals(state = damage2State) {
+  const grade = DAMAGE2_GRADES[state.grade] ?? DAMAGE2_GRADES[DAMAGE2_DEFAULTS.grade];
+  const equipmentTotals = damage2SelectedEquipmentTotals(state);
+  return {
+    attack: grade.attack + ["statAttack", "costumeAttack", "sealAttack", "ridingAttack", "fairyAttack", "secretAttack", "runeAttack"].reduce((sum, key) => sum + num(state[key]), 0) + equipmentTotals.attack,
+    // defense: grade.defense + ["statDefense", "ridingDefense", "fairyDefense", "secretDefense"].reduce((sum, key) => sum + num(state[key]), 0), // 방어력 계산 확장 시 복원
+    // health: grade.health + ["statHealth", "costumeHealth", "ridingHealth", "fairyHealth", "companionHealth", "secretHealth"].reduce((sum, key) => sum + num(state[key]), 0), // 체력 계산 확장 시 복원
+    // movement: grade.movement + ["costumeMove", "sealMove", "ridingMove", "secretMove", "runeMove", "gearMove"].reduce((sum, key) => sum + num(state[key]), 0), // 이동속도 합계 표시 복원 시 사용
+    critDamage: ["ridingCritDamage", "runeCritDamage"].reduce((sum, key) => sum + num(state[key]), 0) + equipmentTotals.critDamage,
+    demon: num(state.runeDemon) + equipmentTotals.demon,
+    lord: num(state.runeLord) + equipmentTotals.lord,
+    boss: num(state.runeBoss) + equipmentTotals.boss,
+    undead: num(state.runeUndead) + equipmentTotals.undead,
+    animal: num(state.runeAnimal) + equipmentTotals.animal,
     monster: num(state.improvementMonsterDamage) + num(state.gearMonsterDamage),
     allSpecies: num(state.ridingAllSpecies),
-    damageReduction: num(state.ridingDamageReduction),
+    // damageReduction: num(state.ridingDamageReduction), // 받는 피해 감소 합계 표시 복원 시 사용
   };
 }
 
 function calculateDamage2(state = damage2State) {
+  const personality = DAMAGE2_PERSONALITIES[state.personality] ?? DAMAGE2_PERSONALITIES.heroic;
+  const grade = DAMAGE2_GRADES[state.grade] ?? DAMAGE2_GRADES[DAMAGE2_DEFAULTS.grade];
+  const equipmentTotals = damage2SelectedEquipmentTotals(state);
   const baseAttack = num(state.weaponAttack) + 2 * num(state.baseAttack) * num(state.weaponSpeed);
   const groupA = 1 + (num(profile.victoryAttack) + num(profile.dungeonAttack)) / 100;
-  const sharedHunterAttack = num(state.sacredAttack) + num(state.personalityAttack) + num(state.statAttack) +
-    num(state.gradeAttack) + num(state.secretAttack) + num(state.runeAttack) + num(state.gearAttack) + num(state.heroAttack);
+  const sharedHunterAttack = DAMAGE2_FIXED_VALUES.sacredAttack + personality.attack + num(state.statAttack) +
+    grade.attack + num(state.secretAttack) + num(state.runeAttack) + equipmentTotals.attack + num(state.heroAttack);
   const groupBTown = 1 + (sharedHunterAttack + num(profile.unionAttack)) / 100;
   const groupBArena = 1 + (sharedHunterAttack + num(state.unionArenaAttack)) / 100;
   const groupC = (num(profile.buildingAttack) + num(profile.townPetAttack)) / 100;
@@ -478,13 +664,14 @@ function calculateDamage2(state = damage2State) {
     num(state.ridingAttack) + num(profile.artifactAttack)
   ) / 100;
   const groupE = 1 + num(state.fairyAttack) / 100;
-  const movementArena = num(state.gradeMove) + num(state.costumeMove) + num(state.sealMove) + num(state.ridingMove) +
-    num(state.personalityMove) + num(state.secretMove) + num(state.runeMove) + num(state.gearMove);
+  const movementArena = grade.movement + num(state.costumeMove) + num(state.sealMove) + num(state.ridingMove) +
+    personality.movement + num(state.secretMove) + num(state.runeMove) + num(state.gearMove);
   const movementTown = movementArena + num(profile.buildingMove);
-  const gustArena = Math.min(movementArena, 300) * num(state.gustRate) / 100;
-  const gustTown = Math.min(movementTown, 300) * num(state.gustRate) / 100;
-  const groupFArena = (1 + num(state.skillAttackAmp) / 100) * (1 + gustArena / 100);
-  const groupFTown = (1 + num(state.skillAttackAmp) / 100) * (1 + gustTown / 100);
+  const gustArena = damage2ShoesAttackAmp(state, movementArena);
+  const gustTown = damage2ShoesAttackAmp(state, movementTown);
+  const necklaceAttackAmp = damage2NecklaceAttackAmp(state);
+  const groupFArena = (1 + num(state.skillAttackAmp) / 100) * (1 + (gustArena + necklaceAttackAmp) / 100);
+  const groupFTown = (1 + num(state.skillAttackAmp) / 100) * (1 + (gustTown + necklaceAttackAmp) / 100);
   const townAttack = baseAttack * groupA * (groupBTown + groupC) * groupD * groupE * groupFTown;
   const arenaAttack = baseAttack * groupBArena * groupD * groupE * groupFArena;
   const finalAttackInterval = 0.25;
@@ -508,31 +695,166 @@ function calculateDamage2(state = damage2State) {
   };
 }
 
+function damage2EquipmentSelect(options, selectedValue, ariaLabel, dataAttributes, field = "type") {
+  return `
+    <select aria-label="${escapeHtml(ariaLabel)}" ${dataAttributes} data-equipment-field="${field}">
+      ${Object.entries(options).map(([value, label]) => `
+        <option value="${value}" ${value === selectedValue ? "selected" : ""}>${escapeHtml(label)}</option>
+      `).join("")}
+    </select>
+  `;
+}
+
+function damage2EquipmentUniqueRow(slot) {
+  const config = DAMAGE2_UNIQUE_CONFIG[slot.key];
+  if (!config) return "";
+  const unique = damage2State.equipment[slot.key].unique;
+  const dataAttributes = `data-damage2-equipment-slot="${slot.key}" data-equipment-group="unique"`;
+  const dependentAttributes = `${dataAttributes} data-equipment-dependent${unique.type === "none" ? " hidden" : ""}`;
+  const valueControl = config.control === "stage"
+    ? damage2EquipmentSelect(DAMAGE2_UNIQUE_STAGES, unique.stage, `${slot.label} 유니크 단계`, dependentAttributes, "stage")
+    : `<label class="damage2-equipment-value" data-equipment-dependent${unique.type === "none" ? " hidden" : ""}>
+        <input type="number" inputmode="decimal" step="0.01" value="${unique.value}" aria-label="${escapeHtml(`${slot.label} 유니크 수치`)}" ${dataAttributes} data-equipment-field="value">
+      </label>`;
+  return `
+    <div class="damage2-equipment-option-row damage2-equipment-unique-row">
+      <span class="damage2-equipment-option-label">유니크</span>
+      ${damage2EquipmentSelect(config.options, unique.type, `${slot.label} 유니크`, dataAttributes)}
+      ${valueControl}
+    </div>
+  `;
+}
+
+function damage2EquipmentRow(slot, group, optionIndex = null) {
+  const isChaos = group === "chaos";
+  const item = isChaos ? damage2State.equipment[slot.key].chaos : damage2State.equipment[slot.key].options[optionIndex];
+  const rowLabel = isChaos ? "혼돈 옵션" : `장비 옵션 ${optionIndex + 1}`;
+  const options = isChaos
+    ? Object.fromEntries(slot.chaosOptions.map((key) => [key, DAMAGE2_CHAOS_OPTIONS[key]]))
+    : DAMAGE2_GEAR_OPTIONS;
+  const indexAttribute = isChaos ? "" : ` data-equipment-index="${optionIndex}"`;
+  const dataAttributes = `data-damage2-equipment-slot="${slot.key}" data-equipment-group="${group}"${indexAttribute}`;
+  return `
+    <div class="damage2-equipment-option-row">
+      <span class="damage2-equipment-option-label">${rowLabel}</span>
+      ${damage2EquipmentSelect(options, item.type, `${slot.label} ${rowLabel}`, dataAttributes)}
+      <label class="damage2-equipment-value">
+        <input type="number" inputmode="decimal" step="0.01" value="${item.value}" aria-label="${escapeHtml(`${slot.label} ${rowLabel} 수치`)}" ${dataAttributes} data-equipment-field="value">
+      </label>
+    </div>
+  `;
+}
+
+function renderDamage2EquipmentTotalEditor() {
+  return `
+    <div class="field-grid compact-grid damage2-field-grid damage2-equipment-total-grid">
+      ${DAMAGE2_EQUIPMENT_TOTAL_FIELDS.map(([key, label]) => `
+        <label class="field damage2-field" data-suffix="%">
+          <span>${escapeHtml(label)}</span>
+          <input type="number" inputmode="decimal" step="0.01" data-damage2-key="${key}">
+        </label>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderDamage2EquipmentEditor() {
+  return `
+    <div class="damage2-equipment-mode" role="group" aria-label="장비옵션 입력 방식">
+      <button type="button" data-damage2-equipment-mode="direct"><b>직접입력</b><small>장비별 설정</small></button>
+      <button type="button" data-damage2-equipment-mode="total"><b>합계입력</b><small>스탯 합계</small></button>
+    </div>
+    <div data-damage2-equipment-panel="direct">
+      <div class="damage2-equipment-list">
+        ${DAMAGE2_EQUIPMENT_SLOTS.map((slot) => `
+          <section class="damage2-equipment-card">
+            <div class="damage2-equipment-heading">
+              <b>${escapeHtml(slot.label)}</b>
+            </div>
+            <div class="damage2-equipment-fields">
+              ${damage2EquipmentUniqueRow(slot)}
+              ${damage2EquipmentRow(slot, "chaos")}
+              ${Array.from({ length: 3 }, (_, optionIndex) => damage2EquipmentRow(slot, "option", optionIndex)).join("")}
+            </div>
+          </section>
+        `).join("")}
+      </div>
+    </div>
+    <div data-damage2-equipment-panel="total">
+      ${renderDamage2EquipmentTotalEditor()}
+    </div>
+  `;
+}
+
+function syncDamage2EquipmentMode(container) {
+  const mode = damage2State.equipmentInputMode === "direct" ? "direct" : "total";
+  container.querySelectorAll("[data-damage2-equipment-mode]").forEach((button) => {
+    const isActive = button.dataset.damage2EquipmentMode === mode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+  container.querySelectorAll("[data-damage2-equipment-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.damage2EquipmentPanel !== mode;
+  });
+}
+
 function renderDamage2() {
   const container = document.querySelector("#damage2-sections");
   if (!container) return;
   if (!container.dataset.ready) {
     container.innerHTML = DAMAGE2_SECTIONS.map((section, sectionIndex) => `
-      <details class="input-card" ${sectionIndex === 0 ? "open" : ""}>
-        <summary>
+      <section class="input-card damage2-static-card">
+        <div class="damage2-section-heading">
           <span class="step">${String(sectionIndex + 1).padStart(2, "0")}</span>
           <span><b>${escapeHtml(section.title)}</b></span>
-          <span class="summary-chevron" aria-hidden="true">⌄</span>
-        </summary>
-        <div class="field-grid compact-grid damage2-field-grid">
-          ${section.fields.map(([key, label, suffix]) => `
-            <label class="field damage2-field" data-suffix="${escapeHtml(suffix)}">
-              <span>${escapeHtml(label)}</span>
-              <input type="number" inputmode="decimal" step="0.01" data-damage2-key="${key}">
-            </label>
-          `).join("")}
         </div>
-      </details>
+        ${section.type === "equipment" ? renderDamage2EquipmentEditor() : `
+        <div class="field-grid compact-grid damage2-field-grid">
+          ${section.fields.map(([key, label, suffix]) => {
+            const options = DAMAGE2_SELECT_OPTIONS[key];
+            return `
+              <label class="field damage2-field" data-suffix="${escapeHtml(suffix)}">
+                <span>${escapeHtml(label)}</span>
+                ${options ? `
+                  <select data-damage2-key="${key}">
+                    ${Object.entries(options).map(([value, option]) => `<option value="${value}">${escapeHtml(option.label)}</option>`).join("")}
+                  </select>
+                ` : `<input type="number" inputmode="decimal" step="0.01" data-damage2-key="${key}">`}
+              </label>
+            `;
+          }).join("")}
+        </div>
+        `}
+      </section>
     `).join("");
     container.dataset.ready = "true";
-    container.querySelectorAll("[data-damage2-key]").forEach((input) => {
-      input.addEventListener("input", () => {
-        damage2State[input.dataset.damage2Key] = num(input.value);
+    container.querySelectorAll("[data-damage2-key]").forEach((control) => {
+      control.addEventListener("input", () => {
+        const key = control.dataset.damage2Key;
+        damage2State[key] = DAMAGE2_SELECT_OPTIONS[key] ? control.value : num(control.value);
+        renderDamage2Results();
+        queueAutoSave();
+      });
+    });
+    container.querySelectorAll("[data-damage2-equipment-mode]").forEach((button) => {
+      button.addEventListener("click", () => {
+        damage2State.equipmentInputMode = button.dataset.damage2EquipmentMode;
+        syncDamage2EquipmentMode(container);
+        renderDamage2Results();
+        queueAutoSave();
+      });
+    });
+    container.querySelectorAll("[data-damage2-equipment-slot]").forEach((control) => {
+      control.addEventListener("input", () => {
+        const slot = damage2State.equipment[control.dataset.damage2EquipmentSlot];
+        const group = control.dataset.equipmentGroup === "chaos" ? slot.chaos
+          : control.dataset.equipmentGroup === "unique" ? slot.unique
+          : slot.options[Number(control.dataset.equipmentIndex)];
+        group[control.dataset.equipmentField] = ["type", "stage"].includes(control.dataset.equipmentField) ? control.value : num(control.value);
+        if (control.dataset.equipmentGroup === "unique" && control.dataset.equipmentField === "type") {
+          const dependent = control.closest(".damage2-equipment-unique-row")?.querySelector("[data-equipment-dependent]");
+          if (dependent) dependent.hidden = control.value === "none";
+        }
         renderDamage2Results();
         queueAutoSave();
       });
@@ -541,6 +863,14 @@ function renderDamage2() {
   container.querySelectorAll("[data-damage2-key]").forEach((input) => {
     input.value = damage2State[input.dataset.damage2Key];
   });
+  container.querySelectorAll("[data-damage2-equipment-slot]").forEach((control) => {
+    const slot = damage2State.equipment[control.dataset.damage2EquipmentSlot];
+    const group = control.dataset.equipmentGroup === "chaos" ? slot.chaos
+      : control.dataset.equipmentGroup === "unique" ? slot.unique
+      : slot.options[Number(control.dataset.equipmentIndex)];
+    control.value = group[control.dataset.equipmentField];
+  });
+  syncDamage2EquipmentMode(container);
   renderDamage2Results();
 }
 
@@ -573,10 +903,14 @@ function renderDamage2Results() {
     <div class="damage2-group-row"><span>${label}</span><strong>${prefix}${prefix ? value.toFixed(4) : formatNumber(value)}</strong></div>
   `).join("");
   const summaryRows = [
-    ["공격력", totals.attack], ["방어력", totals.defense], ["체력", totals.health],
-    ["치명타 피해", totals.critDamage], ["이동속도", totals.movement], ["영장 피해", totals.lord],
-    ["보스 피해", totals.boss], ["몬스터 피해", totals.monster], ["모든 종족 피해", totals.allSpecies],
-    ["받는 피해 감소", totals.damageReduction],
+    ["공격력", totals.attack],
+    // ["방어력", totals.defense], ["체력", totals.health], // 방어력·체력 계산 확장 시 복원
+    ["치명타 피해", totals.critDamage],
+    // ["이동속도", totals.movement], // 이동속도 합계 표시 복원 시 사용
+    ["악마 피해", totals.demon], ["영장 피해", totals.lord], ["보스 피해", totals.boss],
+    ["언데드 피해", totals.undead], ["동물 피해", totals.animal],
+    ["몬스터 피해", totals.monster], ["모든 종족 피해", totals.allSpecies],
+    // ["받는 피해 감소", totals.damageReduction], // 받는 피해 감소 합계 표시 복원 시 사용
   ];
   document.querySelector("#damage2-summary").innerHTML = summaryRows.map(([label, value]) => `
     <div class="damage2-summary-row"><span>${label}</span><strong>${formatNumber(value)}%</strong></div>
@@ -599,11 +933,12 @@ function render() {
   document.querySelector("#hero-damage").textContent = formatNumber(latestResult.rows.보스.expected, unit);
 
   const targets = ["PvP", "보스", "영장", "악마", "언데드", "동물"];
+  const targetLabels = { PvP: "PvP", 보스: "보스 피해", 영장: "영장 피해", 악마: "악마 피해", 언데드: "언데드 피해", 동물: "동물 피해" };
   document.querySelector("#damage-table").innerHTML = `
     <div class="damage-row is-head"><span>대상</span><span>치명타</span><span>일반</span><span>기대 화력</span></div>
     ${targets.map((target) => {
       const row = latestResult.rows[target];
-      return `<div class="damage-row"><b>${target}</b><span>${formatNumber(row.crit, unit)}</span><span>${formatNumber(row.normal, unit)}</span><span class="accent">${formatNumber(row.expected, unit)}</span></div>`;
+      return `<div class="damage-row"><b>${targetLabels[target]}</b><span>${formatNumber(row.crit, unit)}</span><span>${formatNumber(row.normal, unit)}</span><span class="accent">${formatNumber(row.expected, unit)}</span></div>`;
     }).join("")}
   `;
 }
@@ -837,11 +1172,62 @@ function mergeDefense(saved) {
   return merged;
 }
 
+function mergeDamage2Equipment(saved) {
+  const merged = createDamage2EquipmentDefaults();
+  if (!saved || typeof saved !== "object") return merged;
+  DAMAGE2_EQUIPMENT_SLOTS.forEach(({ key, chaosOptions }) => {
+    const candidate = saved[key];
+    if (!candidate || typeof candidate !== "object") return;
+    if (candidate.chaos && typeof candidate.chaos === "object") {
+      if (chaosOptions.includes(candidate.chaos.type)) merged[key].chaos.type = candidate.chaos.type;
+      merged[key].chaos.value = num(candidate.chaos.value);
+    }
+    if (Array.isArray(candidate.options)) {
+      const isLegacyEmptyDefault = candidate.options.slice(0, 3).length === 3 && candidate.options.slice(0, 3).every((option) => option?.type === "attack" && num(option.value) === 0);
+      if (!isLegacyEmptyDefault) {
+        merged[key].options = merged[key].options.map((option, optionIndex) => {
+          const savedOption = candidate.options[optionIndex];
+          if (!savedOption || typeof savedOption !== "object") return option;
+          return {
+            type: Object.prototype.hasOwnProperty.call(DAMAGE2_GEAR_OPTIONS, savedOption.type) ? savedOption.type : option.type,
+            value: num(savedOption.value),
+          };
+        });
+      }
+    }
+    const uniqueConfig = DAMAGE2_UNIQUE_CONFIG[key];
+    if (uniqueConfig && candidate.unique && typeof candidate.unique === "object") {
+      if (Object.prototype.hasOwnProperty.call(uniqueConfig.options, candidate.unique.type)) merged[key].unique.type = candidate.unique.type;
+      if (uniqueConfig.control === "stage") {
+        const stage = String(candidate.unique.stage ?? "");
+        if (Object.prototype.hasOwnProperty.call(DAMAGE2_UNIQUE_STAGES, stage)) merged[key].unique.stage = stage;
+      } else {
+        merged[key].unique.value = num(candidate.unique.value);
+      }
+    }
+  });
+  return merged;
+}
+
 function mergeDamage2(saved) {
   const merged = structuredClone(DAMAGE2_DEFAULTS);
   if (!saved || typeof saved !== "object") return merged;
   Object.keys(merged).forEach((key) => {
-    if (Object.prototype.hasOwnProperty.call(saved, key)) merged[key] = num(saved[key]);
+    if (!Object.prototype.hasOwnProperty.call(saved, key)) return;
+    if (key === "equipment") {
+      merged.equipment = mergeDamage2Equipment(saved.equipment);
+      return;
+    }
+    if (key === "equipmentInputMode") {
+      merged.equipmentInputMode = ["direct", "total"].includes(saved.equipmentInputMode) ? saved.equipmentInputMode : DAMAGE2_DEFAULTS.equipmentInputMode;
+      return;
+    }
+    const options = DAMAGE2_SELECT_OPTIONS[key];
+    if (options) {
+      merged[key] = Object.prototype.hasOwnProperty.call(options, saved[key]) ? saved[key] : DAMAGE2_DEFAULTS[key];
+      return;
+    }
+    merged[key] = num(saved[key]);
   });
   return merged;
 }
