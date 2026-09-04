@@ -878,43 +878,7 @@ function renderDamage2Results() {
   const hero = document.querySelector("#damage2-town-attack");
   if (!hero) return;
   const result = calculateDamage2();
-  const totals = damage2Totals();
   hero.textContent = formatNumber(Math.trunc(result.townAttack));
-  document.querySelector("#damage2-arena-attack").textContent = formatNumber(Math.trunc(result.arenaAttack));
-  document.querySelector("#damage2-town-dps").textContent = formatNumber(Math.trunc(result.townDps));
-  document.querySelector("#damage2-arena-dps").textContent = formatNumber(Math.trunc(result.arenaDps));
-  document.querySelector("#damage2-base-attack").textContent = formatNumber(result.baseAttack);
-  document.querySelector("#damage2-validation").innerHTML = result.displayedAttack ? `
-    <span>게임값 대비</span>
-    <strong class="${result.difference > 0 ? "is-plus" : result.difference < 0 ? "is-minus" : ""}">${result.difference > 0 ? "+" : ""}${formatNumber(Math.trunc(result.difference))} · ${result.errorRate > 0 ? "+" : ""}${result.errorRate.toFixed(2)}%</strong>
-  ` : `<span>게임 표시 공격력을 입력하면 오차를 확인할 수 있습니다.</span>`;
-  const groupRows = [
-    ["기초", result.baseAttack, ""],
-    ["A · 승전/지던", result.groups.A, "×"],
-    ["B · 헌터(마을)", result.groups.BTown, "×"],
-    ["B · 헌터(콜로)", result.groups.BArena, "×"],
-    ["C · 마을", result.groups.C, "+"],
-    ["D · 독립", result.groups.D, "×"],
-    ["E · 요정", result.groups.E, "×"],
-    ["F · 증폭(마을)", result.groups.FTown, "×"],
-    ["F · 증폭(콜로)", result.groups.FArena, "×"],
-  ];
-  document.querySelector("#damage2-formula-groups").innerHTML = groupRows.map(([label, value, prefix]) => `
-    <div class="damage2-group-row"><span>${label}</span><strong>${prefix}${prefix ? value.toFixed(4) : formatNumber(value)}</strong></div>
-  `).join("");
-  const summaryRows = [
-    ["공격력", totals.attack],
-    // ["방어력", totals.defense], ["체력", totals.health], // 방어력·체력 계산 확장 시 복원
-    ["치명타 피해", totals.critDamage],
-    // ["이동속도", totals.movement], // 이동속도 합계 표시 복원 시 사용
-    ["악마 피해", totals.demon], ["영장 피해", totals.lord], ["보스 피해", totals.boss],
-    ["언데드 피해", totals.undead], ["동물 피해", totals.animal],
-    ["몬스터 피해", totals.monster], ["모든 종족 피해", totals.allSpecies],
-    // ["받는 피해 감소", totals.damageReduction], // 받는 피해 감소 합계 표시 복원 시 사용
-  ];
-  document.querySelector("#damage2-summary").innerHTML = summaryRows.map(([label, value]) => `
-    <div class="damage2-summary-row"><span>${label}</span><strong>${formatNumber(value)}%</strong></div>
-  `).join("");
 }
 
 function formatNumber(value, unit = 1) {

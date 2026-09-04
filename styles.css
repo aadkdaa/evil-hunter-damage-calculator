@@ -584,6 +584,28 @@ select:focus {
 .result-hero p { color: #d7e5ff; }
 .result-hero strong { color: white; }
 .result-hero > span:last-child { color: #bcd0f3; }
+.damage2-result-hero {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  min-height: 190px;
+  padding: 28px 24px;
+}
+.damage2-result-hero .result-label {
+  gap: 10px;
+  color: white;
+  font-size: 19px;
+  letter-spacing: -.02em;
+  text-transform: none;
+}
+.damage2-result-hero .status-dot {
+  width: 9px;
+  height: 9px;
+}
+.damage2-result-hero strong {
+  align-self: end;
+  margin-top: auto;
+}
 .metric-grid article {
   border-color: var(--line);
   border-radius: 14px;

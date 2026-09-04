@@ -9,7 +9,7 @@
       content="이블헌터타이쿤의 공격력, 치명타, 공격속도와 대상별 데미지를 계산합니다."
     />
     <title>Hunter Lab · 이블헌터타이쿤 데미지 계산기</title>
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <section class="access-gate" id="access-gate" aria-labelledby="access-title">
@@ -298,30 +298,10 @@
             <div class="input-column" id="damage2-sections"></div>
 
             <aside class="result-column" aria-live="polite">
-              <div class="result-hero">
+              <div class="result-hero damage2-result-hero">
                 <div class="result-label"><span class="status-dot"></span> 공격력 계산</div>
-                <p>마을 공격력</p>
                 <strong id="damage2-town-attack">0</strong>
               </div>
-
-              <div class="metric-grid">
-                <article><span>콜로세움 공격력</span><strong id="damage2-arena-attack">0</strong></article>
-                <article><span>마을 초당 공격력</span><strong id="damage2-town-dps">0</strong></article>
-                <article><span>콜로세움 초당 공격력</span><strong id="damage2-arena-dps">0</strong></article>
-                <article><span>기초 공격력</span><strong id="damage2-base-attack">0</strong></article>
-              </div>
-
-              <div class="damage2-validation" id="damage2-validation"></div>
-
-              <section class="damage-board">
-                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>계산 그룹</b></div></div>
-                <div class="damage2-group-grid" id="damage2-formula-groups"></div>
-              </section>
-
-              <section class="damage-board">
-                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>참고 스탯 합계</b></div></div>
-                <div class="damage2-summary" id="damage2-summary"></div>
-              </section>
             </aside>
           </div>
         </section>
@@ -506,6 +486,6 @@
         </section>
       </main>
     </div>
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=18"></script>
   </body>
 </html>
