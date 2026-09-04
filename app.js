@@ -48,6 +48,7 @@ const DAMAGE2_FIXED_VALUES = Object.freeze({
   sacredAttack: 90,
 });
 const DAMAGE2_PERSONALITIES = Object.freeze({
+  nimble: Object.freeze({ label: "날쌘돌이", attack: 0, movement: 0 }),
   strong: Object.freeze({ label: "힘이 쎈", attack: 10, movement: 0 }),
   heroic: Object.freeze({ label: "영웅심리", attack: 7, movement: 7 }),
 });
@@ -197,7 +198,11 @@ const DAMAGE2_DEFAULTS = Object.freeze({
 });
 
 const DAMAGE2_SECTIONS = [
-  { title: "헌터정보", fields: [["baseAttack", "헌터 고유공격력", ""], ["displayedAttack", "게임 표시 공격력", ""], ["grade", "헌터 등급", ""], ["personality", "성격", ""]] },
+  { title: "헌터정보", fields: [
+    ["baseAttack", "헌터 고유공격력", ""], ["displayedAttack", "게임 표시 공격력", ""],
+    ["grade", "헌터 등급", ""], ["personality", "성격", ""],
+    ["weaponAttack", "무기 공격력", ""], ["weaponSpeed", "무기 공격속도", ""],
+  ] },
   { title: "장비옵션", type: "equipment" },
   { title: "코스튬 버프", fields: [
     ["costumeAttack", "공격력", "%"],
