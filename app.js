@@ -1,8 +1,109 @@
-const STORAGE_KEY = "evil-hunter-calculator-state-v2";
+const STORAGE_KEY = "evil-hunter-calculator-state-v3";
 const LEGACY_PROFILE_KEY = "evil-hunter-damage-profile";
-const STATE_VERSION = 2;
+const STATE_VERSION = 4;
+
+const BASE_SETTING_DEFAULTS = Object.freeze({
+  victoryAttack: 12,
+  victoryHealth: 6,
+  victoryBoss: 5,
+  unionHealth: 15,
+  unionAttack: 15,
+  unionDefense: 15,
+  dungeonAttack: 135,
+  dungeonDefense: 135,
+  buildingAttack: 65,
+  buildingHealth: 65,
+  buildingDefense: 65,
+  buildingMove: 50,
+  buildingCritDamage: 65,
+  collectionAttack: 69.4,
+  collectionDefense: 66,
+  collectionHealth: 133.1,
+  collectionCritDamage: 76.5,
+  collectionLord: 5,
+  collectionDemon: 5,
+  collectionUndead: 5,
+  collectionBoss: 26,
+  collectionAnimal: 5,
+  artifactAttack: 12.5,
+  artifactDefense: 11,
+  artifactHealth: 21,
+  artifactCritDamage: 18.75,
+  artifactLord: 15.75,
+  artifactDemon: 10.5,
+  artifactUndead: 10.5,
+  artifactBoss: 15.75,
+  artifactAnimal: 10.5,
+  artifactBerserkerAmp: 2.75,
+  artifactPaladinAmp: 1.75,
+  artifactRangerAmp: 1.75,
+  artifactSorcererAmp: 1,
+  artifactDarkKnightAmp: 1.75,
+  townPetAttack: 20,
+  townPetHealth: 14,
+  townPetDefense: 10,
+});
+const BASE_SETTING_KEYS = new Set(Object.keys(BASE_SETTING_DEFAULTS));
+
+const DAMAGE2_DEFAULTS = Object.freeze({
+  weaponAttack: 1742004,
+  weaponSpeed: 2,
+  statHealth: 10,
+  statAttack: 20,
+  statDefense: 20,
+  gradeMove: 20,
+  gradeHealth: 6,
+  gradeAttack: 6,
+  gradeDefense: 6,
+  costumeAttack: 6,
+  costumeMove: 60,
+  costumeHealth: 4,
+  sealAttack: 16,
+  sealMove: 20,
+  ridingAttack: 38.15,
+  ridingDefense: 18,
+  ridingCritDamage: 60,
+  ridingAllSpecies: 30,
+  ridingHealth: 18,
+  ridingDamageReduction: 6,
+  ridingMove: 75,
+  fairyAttack: 2,
+  fairyDefense: 2,
+  companionHealth: 0,
+  improvementMonsterDamage: 30,
+  secretHealth: 15,
+  secretAttack: 15,
+  secretDefense: 15,
+  secretMove: 15,
+  runeAttack: 28,
+  runeMove: 16,
+  runeBoss: 36,
+  runeCritDamage: 31,
+  gearAttack: 226,
+  gearMove: 43,
+  gearLord: 27,
+  gearBoss: 348,
+  gearCritDamage: 605,
+  gearMonsterDamage: 35,
+});
+
+const DAMAGE2_SECTIONS = [
+  { title: "무기", fields: [["weaponAttack", "무기 공격력", ""], ["weaponSpeed", "무기 공격속도", ""]] },
+  { title: "헌터 스텟 등급 효과", fields: [["statAttack", "공격력", "%"], ["statDefense", "방어력", "%"], ["statHealth", "체력", "%"]] },
+  { title: "헌터 등급 버프", fields: [["gradeAttack", "공격력", "%"], ["gradeDefense", "방어력", "%"], ["gradeHealth", "체력", "%"], ["gradeMove", "이동속도", "%"]] },
+  { title: "코스튬 버프", fields: [["costumeAttack", "공격력", "%"], ["costumeHealth", "체력", "%"], ["costumeMove", "이동속도", "%"]] },
+  { title: "인장 버프", fields: [["sealAttack", "공격력", "%"], ["sealMove", "이동속도", "%"]] },
+  { title: "라이딩펫 버프", fields: [["ridingAttack", "공격력", "%"], ["ridingDefense", "방어력", "%"], ["ridingHealth", "체력", "%"], ["ridingCritDamage", "치명타 피해", "%"], ["ridingMove", "이동속도", "%"], ["ridingAllSpecies", "모든 종족 피해", "%"], ["ridingDamageReduction", "받는 피해 감소", "%"]] },
+  { title: "요정 버프", fields: [["fairyAttack", "공격력", "%"], ["fairyDefense", "방어력", "%"]] },
+  { title: "컴패 버프", fields: [["companionHealth", "체력", "%"]] },
+  { title: "개량 옵션", fields: [["improvementMonsterDamage", "몬스터 피해", "%"]] },
+  { title: "비법", fields: [["secretAttack", "공격력", "%"], ["secretDefense", "방어력", "%"], ["secretHealth", "체력", "%"], ["secretMove", "이동속도", "%"]] },
+  { title: "룬", fields: [["runeAttack", "공격력", "%"], ["runeCritDamage", "치명타 피해", "%"], ["runeMove", "이동속도", "%"], ["runeBoss", "보스 피해", "%"]] },
+  { title: "장비 옵션", fields: [["gearAttack", "전체 공격력", "%"], ["gearCritDamage", "치명타 피해", "%"], ["gearMove", "이동속도", "%"], ["gearLord", "영장 피해", "%"], ["gearBoss", "보스 피해", "%"], ["gearMonsterDamage", "몬스터 피해", "%"]] },
+];
 
 const defaultProfile = {
+  ...BASE_SETTING_DEFAULTS,
   measuredAttack: 107543896,
   baseAttack: 933.75,
   weaponAttack: 1916205,
@@ -10,8 +111,6 @@ const defaultProfile = {
   fury: 13,
   grade: "U+",
   job: "버서커",
-  victoryRank: "1~3",
-  dungeonFloor: 414,
   runeAttack: 34,
   gearAttack: 171,
   runeCritDamage: 38,
@@ -28,17 +127,17 @@ const defaultProfile = {
   costumeCritDamage: 6,
   costumeAttack: 6,
   collectionCrit: 17,
-  collectionCritDamage: 130.5,
-  collectionAttack: 110.4,
-  collectionBoss: 71,
-  collectionLord: 15,
+  collectionCritDamage: 76.5,
+  collectionAttack: 69.4,
+  collectionBoss: 26,
+  collectionLord: 5,
   collectionDemon: 5,
   collectionUndead: 5,
   collectionAnimal: 5,
   sealMove: 20,
   sealAttack: 16,
   townPetCritDamage: 16,
-  townPetAttack: 26,
+  townPetAttack: 20,
   ridingMove: 75,
   ridingAttackSpeed: 12,
   ridingCrit: 12,
@@ -106,15 +205,18 @@ const defaultProfile = {
 
 let profile = structuredClone(defaultProfile);
 let latestResult = null;
+let damage2State = structuredClone(DAMAGE2_DEFAULTS);
 
 const fixed = {
   unionAttack: 15, unionAttackSpeed: 5, unionCrit: 5,
   buildingMove: 50, buildingCritDamage: 65, buildingAttack: 65,
   costumeMove: 60, costumeCritDamage: 6,
-  collectionCrit: 17, collectionCritDamage: 130.5, collectionAttack: 110.4,
-  collectionBoss: 71, collectionLord: 15, collectionDemon: 5, collectionUndead: 5, collectionAnimal: 5,
+  collectionCrit: 17, collectionCritDamage: 76.5, collectionAttack: 69.4,
+  collectionBoss: 26, collectionLord: 5, collectionDemon: 5, collectionUndead: 5, collectionAnimal: 5,
+  artifactAttack: 12.5, artifactCritDamage: 18.75,
+  artifactBoss: 15.75, artifactLord: 15.75, artifactDemon: 10.5, artifactUndead: 10.5, artifactAnimal: 10.5,
   sealMove: 20, sealAttack: 16,
-  townPetCritDamage: 16, townPetAttack: 26,
+  townPetCritDamage: 16, townPetAttack: 20,
   ridingMove: 75, ridingAttackSpeed: 12, ridingCrit: 12, ridingCritDamage: 40, ridingAttack: 18, ridingAnimal: 40,
   fairyAttack: 6,
   statAttack: 30, statAttackSpeed: 30, statCrit: 6, naturalCrit: 1,
@@ -169,13 +271,13 @@ function productAmpGroup(entries, movement) {
 function calculate(p) {
   const s = { ...fixed, ...p };
   const grade = gradeStats(p.grade);
-  const victoryAttack = { "1~3": 16, "4~10": 12, "11~20": 8 }[p.victoryRank] ?? 0;
-  const victoryBoss = { "1~3": 10, "4~10": 5 }[p.victoryRank] ?? 0;
-  const dungeonAttack = Math.max(0, (num(p.dungeonFloor) - 125) * 0.5);
+  const victoryAttack = num(s.victoryAttack);
+  const victoryBoss = num(s.victoryBoss);
+  const dungeonAttack = num(s.dungeonAttack);
   const classCrit = ["버서커", "팔라딘", "다크나이트"].includes(p.job) ? 3 : 6;
 
   const fairyCoefficient = 1 + num(s.fairyAttack) / 100;
-  const accountCoefficient = 1 + (num(s.costumeAttack) + num(s.collectionAttack) + num(s.sealAttack) + num(s.ridingAttack)) / 100;
+  const accountCoefficient = 1 + (num(s.costumeAttack) + num(s.collectionAttack) + num(s.artifactAttack) + num(s.sealAttack) + num(s.ridingAttack)) / 100;
   const hunterCoefficient = 1 + (
     (num(s.unionAttack) - 10) + grade.attack + num(s.personalityAttack) + num(s.statAttack) + num(s.secretAttack) +
     num(s.runeAttack) + num(s.gearAttack) + num(s.sacredAttack) + num(s.heroAttack)
@@ -214,7 +316,7 @@ function calculate(p) {
   const pvpDps = pvpAttack / attackInterval;
 
   const baseCritDamage = 1.75 + (
-    num(s.collectionCritDamage) + num(s.ridingCritDamage) + num(s.runeCritDamage) + num(s.gearCritDamage) + num(s.heroCritDamage)
+    num(s.collectionCritDamage) + num(s.artifactCritDamage) + num(s.ridingCritDamage) + num(s.runeCritDamage) + num(s.gearCritDamage) + num(s.heroCritDamage)
   ) / 100;
   const pveCritDamage = baseCritDamage + (num(s.buildingCritDamage) + num(s.townPetCritDamage)) / 100;
   const pvpCritDamage = baseCritDamage + num(s.gearSpirit) / 100;
@@ -224,15 +326,23 @@ function calculate(p) {
   );
 
   const ridingMonster = num(s.ridingMonster);
-  const pvpSpecies = 1 + (num(s.collectionLord) + num(s.runeLord) + num(s.gearLord) + ridingMonster) / 100;
+  const pvpSpecies = 1 + (num(s.collectionLord) + num(s.artifactLord) + num(s.runeLord) + num(s.gearLord) + ridingMonster) / 100;
   const species = {
     PvP: pvpSpecies * (1 + num(s.gearHunter) / 100),
-    보스: (1 + (victoryBoss + num(s.collectionBoss) + num(s.runeBoss) + num(s.gearBoss) + ridingMonster) / 100) * (1 + (num(s.virtueMonster) + num(s.gearMonster)) / 100),
+    보스: (1 + (victoryBoss + num(s.collectionBoss) + num(s.artifactBoss) + num(s.runeBoss) + num(s.gearBoss) + ridingMonster) / 100) * (1 + (num(s.virtueMonster) + num(s.gearMonster)) / 100),
     영장: pvpSpecies * (1 + (num(s.virtueMonster) + num(s.gearMonster)) / 100),
-    악마: (1 + (num(s.collectionDemon) + num(s.runeDemon) + num(s.gearDemon) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
-    언데드: (1 + (num(s.collectionUndead) + num(s.runeUndead) + num(s.gearUndead) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
-    동물: (1 + (num(s.collectionAnimal) + num(s.runeAnimal) + num(s.gearAnimal) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
+    악마: (1 + (num(s.collectionDemon) + num(s.artifactDemon) + num(s.runeDemon) + num(s.gearDemon) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
+    언데드: (1 + (num(s.collectionUndead) + num(s.artifactUndead) + num(s.runeUndead) + num(s.gearUndead) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
+    동물: (1 + (num(s.collectionAnimal) + num(s.artifactAnimal) + num(s.runeAnimal) + num(s.gearAnimal) + ridingMonster) / 100) * (1 + num(s.gearMonster) / 100),
   };
+  const artifactJobAmpKey = {
+    버서커: "artifactBerserkerAmp",
+    팔라딘: "artifactPaladinAmp",
+    레인저: "artifactRangerAmp",
+    소서러: "artifactSorcererAmp",
+    다크나이트: "artifactDarkKnightAmp",
+  }[p.job];
+  const artifactJobMultiplier = 1 + num(s[artifactJobAmpKey]) / 100;
 
   const rows = {};
   for (const target of Object.keys(species)) {
@@ -243,9 +353,9 @@ function calculate(p) {
     const damageAmp = isPvp ? ampDamagePvp : ampDamagePve;
     const attackAmp = isPvp ? ampAttackPvp : ampAttackPve;
     rows[target] = {
-      crit: attack * critDamage * damageAmp / attackAmp * species[target],
-      normal: attack * damageAmp / attackAmp * species[target],
-      expected: dps * (1 + critChance / 100 * critDamage) * damageAmp / attackAmp * species[target],
+      crit: attack * critDamage * damageAmp / attackAmp * species[target] * artifactJobMultiplier,
+      normal: attack * damageAmp / attackAmp * species[target] * artifactJobMultiplier,
+      expected: dps * (1 + critChance / 100 * critDamage) * damageAmp / attackAmp * species[target] * artifactJobMultiplier,
     };
   }
 
@@ -253,6 +363,157 @@ function calculate(p) {
     pveAttack, pvpAttack, pveDps, pvpDps, critChance, actionGap, rows,
     movementPve, movementPvp, ampDamagePve, ampDamagePvp, ampAttackPve, ampAttackPvp,
   };
+}
+
+function damage2Profile(state = damage2State) {
+  const accountValues = {};
+  BASE_SETTING_KEYS.forEach((key) => { accountValues[key] = profile[key]; });
+  return {
+    ...defaultProfile,
+    ...accountValues,
+    baseAttack: profile.baseAttack,
+    job: profile.job,
+    grade: "",
+    fury: 0,
+    weaponAttack: num(state.weaponAttack),
+    weaponSpeed: num(state.weaponSpeed),
+    unionAttackSpeed: 0,
+    unionCrit: 0,
+    costumeMove: num(state.costumeMove),
+    costumeCritDamage: 0,
+    costumeAttack: num(state.costumeAttack),
+    collectionCrit: 0,
+    sealMove: num(state.sealMove),
+    sealAttack: num(state.sealAttack),
+    townPetCritDamage: 0,
+    ridingMove: num(state.ridingMove),
+    ridingAttackSpeed: 0,
+    ridingCrit: 0,
+    ridingCritDamage: num(state.ridingCritDamage),
+    ridingAttack: num(state.ridingAttack),
+    ridingMonster: num(state.ridingAllSpecies),
+    fairyAttack: num(state.fairyAttack),
+    personalityMove: num(state.gradeMove),
+    personalityAttackSpeed: 0,
+    personalityCrit: 0,
+    personalityAttack: num(state.gradeAttack),
+    statAttack: num(state.statAttack),
+    statAttackSpeed: 0,
+    statCrit: 0,
+    naturalCrit: 0,
+    secretMove: num(state.secretMove),
+    secretAttackSpeed: 0,
+    secretCrit: 0,
+    secretAttack: num(state.secretAttack),
+    quickening: 0,
+    runeMove: num(state.runeMove),
+    runeAttackSpeed: 0,
+    runeAttack: num(state.runeAttack),
+    runeCritDamage: num(state.runeCritDamage),
+    runeCrit: 0,
+    runeBoss: num(state.runeBoss),
+    runeLord: 0,
+    runeDemon: 0,
+    runeUndead: 0,
+    runeAnimal: 0,
+    gearMove: num(state.gearMove),
+    gearAttackSpeed: 0,
+    gearAttack: num(state.gearAttack),
+    gearCritDamage: num(state.gearCritDamage),
+    gearCrit: 0,
+    gearBoss: num(state.gearBoss),
+    gearLord: num(state.gearLord),
+    gearDemon: 0,
+    gearUndead: 0,
+    gearAnimal: 0,
+    gearMonster: num(state.improvementMonsterDamage) + num(state.gearMonsterDamage),
+    gearHunter: 0,
+    gearSpirit: 0,
+    virtueMonster: 0,
+    sacredAttack: 0,
+    heroAttack: 0,
+    heroCritDamage: 0,
+    ampA: [],
+    ampB: [],
+    ampC: [],
+    ampD: [],
+  };
+}
+
+function damage2Totals(state = damage2State) {
+  return {
+    attack: ["statAttack", "gradeAttack", "costumeAttack", "sealAttack", "ridingAttack", "fairyAttack", "secretAttack", "runeAttack", "gearAttack"].reduce((sum, key) => sum + num(state[key]), 0),
+    defense: ["statDefense", "gradeDefense", "ridingDefense", "fairyDefense", "secretDefense"].reduce((sum, key) => sum + num(state[key]), 0),
+    health: ["statHealth", "gradeHealth", "costumeHealth", "ridingHealth", "companionHealth", "secretHealth"].reduce((sum, key) => sum + num(state[key]), 0),
+    movement: ["gradeMove", "costumeMove", "sealMove", "ridingMove", "secretMove", "runeMove", "gearMove"].reduce((sum, key) => sum + num(state[key]), 0),
+    critDamage: ["ridingCritDamage", "runeCritDamage", "gearCritDamage"].reduce((sum, key) => sum + num(state[key]), 0),
+    boss: num(state.runeBoss) + num(state.gearBoss),
+    lord: num(state.gearLord),
+    monster: num(state.improvementMonsterDamage) + num(state.gearMonsterDamage),
+    allSpecies: num(state.ridingAllSpecies),
+    damageReduction: num(state.ridingDamageReduction),
+  };
+}
+
+function calculateDamage2(state = damage2State) {
+  return calculate(damage2Profile(state));
+}
+
+function renderDamage2() {
+  const container = document.querySelector("#damage2-sections");
+  if (!container) return;
+  if (!container.dataset.ready) {
+    container.innerHTML = DAMAGE2_SECTIONS.map((section, sectionIndex) => `
+      <details class="input-card" ${sectionIndex === 0 ? "open" : ""}>
+        <summary>
+          <span class="step">${String(sectionIndex + 1).padStart(2, "0")}</span>
+          <span><b>${escapeHtml(section.title)}</b></span>
+          <span class="summary-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="field-grid compact-grid damage2-field-grid">
+          ${section.fields.map(([key, label, suffix]) => `
+            <label class="field damage2-field" data-suffix="${escapeHtml(suffix)}">
+              <span>${escapeHtml(label)}</span>
+              <input type="number" inputmode="decimal" step="0.01" data-damage2-key="${key}">
+            </label>
+          `).join("")}
+        </div>
+      </details>
+    `).join("");
+    container.dataset.ready = "true";
+    container.querySelectorAll("[data-damage2-key]").forEach((input) => {
+      input.addEventListener("input", () => {
+        damage2State[input.dataset.damage2Key] = num(input.value);
+        renderDamage2Results();
+        queueAutoSave();
+      });
+    });
+  }
+  container.querySelectorAll("[data-damage2-key]").forEach((input) => {
+    input.value = damage2State[input.dataset.damage2Key];
+  });
+  renderDamage2Results();
+}
+
+function renderDamage2Results() {
+  const hero = document.querySelector("#damage2-hero-damage");
+  if (!hero) return;
+  const result = calculateDamage2();
+  const totals = damage2Totals();
+  hero.textContent = formatNumber(result.rows.보스.expected);
+  document.querySelector("#damage2-pve-attack").textContent = formatNumber(result.pveAttack);
+  document.querySelector("#damage2-pve-dps").textContent = formatNumber(result.pveDps);
+  document.querySelector("#damage2-boss-normal").textContent = formatNumber(result.rows.보스.normal);
+  document.querySelector("#damage2-boss-crit").textContent = formatNumber(result.rows.보스.crit);
+  const summaryRows = [
+    ["공격력", totals.attack], ["방어력", totals.defense], ["체력", totals.health],
+    ["치명타 피해", totals.critDamage], ["이동속도", totals.movement], ["영장 피해", totals.lord],
+    ["보스 피해", totals.boss], ["몬스터 피해", totals.monster], ["모든 종족 피해", totals.allSpecies],
+    ["받는 피해 감소", totals.damageReduction],
+  ];
+  document.querySelector("#damage2-summary").innerHTML = summaryRows.map(([label, value]) => `
+    <div class="damage2-summary-row"><span>${label}</span><strong>${formatNumber(value)}%</strong></div>
+  `).join("");
 }
 
 function formatNumber(value, unit = 1) {
@@ -375,7 +636,7 @@ const defaultDefense = {
     { name: "장갑", options: [{ label: "직접 입력", value: 0, enabled: false }, { label: "심장", value: 0, enabled: false }, { label: "테스트1", value: 920206, enabled: true }] },
     { name: "신발", options: [{ label: "불굴", value: 0, enabled: false }, { label: "심신", value: 0, enabled: false }, { label: "테스트1", value: 707851, enabled: true }] },
   ],
-  stats: { fairy: 6, union: 15, stat: 20, grade: 8, building: 65, collection: 76, townPet: 10, riding: 24, secret: 15, rune: 0, gear: 0, dungeonFloor: 355 },
+  stats: { fairy: 6, stat: 20, grade: 8, riding: 24, secret: 15, rune: 0, gear: 0 },
 };
 let defenseState = structuredClone(defaultDefense);
 
@@ -410,8 +671,8 @@ function renderDefense() {
   });
 
   const statLabels = {
-    baseDefense: "헌터 기본 방어력", fairy: "요정 %", union: "연합 %", stat: "스탯 %", grade: "등급 %", building: "건물 %",
-    collection: "도감 %", townPet: "마을펫 %", riding: "라이딩 %", secret: "비법 %", rune: "룬 %", gear: "장비 %", dungeonFloor: "지하던전 층수",
+    baseDefense: "헌터 기본 방어력", fairy: "요정 %", stat: "스탯 %", grade: "등급 %",
+    riding: "라이딩 %", secret: "비법 %", rune: "룬 %", gear: "장비 %",
   };
   const stats = document.querySelector("#defense-stats");
   if (!stats.dataset.ready) {
@@ -433,8 +694,10 @@ function renderDefense() {
 
   const equipmentTotal = defenseState.slots.flatMap((slot) => slot.options).filter((option) => option.enabled).reduce((sum, option) => sum + num(option.value), 0);
   const rawDefense = defenseState.baseDefense + equipmentTotal;
-  const optionPercent = ["union", "stat", "grade", "building", "collection", "townPet", "riding", "secret", "rune", "gear"].reduce((sum, key) => sum + num(defenseState.stats[key]), 0);
-  const dungeonPercent = Math.max(0, (num(defenseState.stats.dungeonFloor) - 125) * 0.5);
+  const hunterOptionPercent = ["stat", "grade", "riding", "secret", "rune", "gear"].reduce((sum, key) => sum + num(defenseState.stats[key]), 0);
+  const accountOptionPercent = num(profile.unionDefense) + num(profile.buildingDefense) + num(profile.collectionDefense) + num(profile.artifactDefense) + num(profile.townPetDefense);
+  const optionPercent = hunterOptionPercent + accountOptionPercent;
+  const dungeonPercent = num(profile.dungeonDefense);
   const fairyMultiplier = 1 + num(defenseState.stats.fairy) / 100;
   const optionMultiplier = 1 + optionPercent / 100;
   const dungeonMultiplier = 1 + dungeonPercent / 100;
@@ -509,12 +772,23 @@ function mergeDefense(saved) {
   return merged;
 }
 
+function mergeDamage2(saved) {
+  const merged = structuredClone(DAMAGE2_DEFAULTS);
+  if (!saved || typeof saved !== "object") return merged;
+  Object.keys(merged).forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(saved, key)) merged[key] = num(saved[key]);
+  });
+  return merged;
+}
+
 function applyStoredState(saved) {
   if (!saved || typeof saved !== "object") throw new Error("올바른 백업 데이터가 아닙니다.");
   profile = mergeProfile(saved.profile);
   compareProfiles.a = mergeProfile(saved.comparison?.a ?? profile);
   compareProfiles.b = mergeProfile(saved.comparison?.b ?? profile);
+  syncBaseSettingsToComparison();
   defenseState = mergeDefense(saved.defense);
+  damage2State = mergeDamage2(saved.damage2);
   if (Array.isArray(saved.verifier?.damages)) {
     verifierDamages = Array.from({ length: 20 }, (_, index) => {
       const value = saved.verifier.damages[index];
@@ -522,7 +796,7 @@ function applyStoredState(saved) {
     });
   }
   const requestedView = typeof saved.ui?.activeView === "string" ? saved.ui.activeView : "calculator";
-  const validViews = ["calculator", "base-settings", "comparison", "defense", "verifier", "storage"];
+  const validViews = ["calculator", "calculator-2", "base-settings", "comparison", "defense", "verifier", "storage"];
   uiState = {
     activeView: validViews.includes(requestedView) ? requestedView : "calculator",
     displayUnit: ["1", "1000", "1000000", "1000000000"].includes(String(saved.ui?.displayUnit)) ? String(saved.ui.displayUnit) : "1",
@@ -541,6 +815,7 @@ function currentAppState() {
     app: "이블헌터타이쿤 데미지 계산기",
     savedAt: new Date().toISOString(),
     profile,
+    damage2: damage2State,
     comparison: compareProfiles,
     defense: defenseState,
     verifier: { damages: verifierDamages, error: uiState.verifierError },
@@ -608,11 +883,19 @@ function syncProfileInputs() {
   document.querySelectorAll("[data-key]").forEach((input) => { input.value = profile[input.dataset.key]; });
 }
 
+function syncBaseSettingsToComparison() {
+  BASE_SETTING_KEYS.forEach((key) => {
+    compareProfiles.a[key] = profile[key];
+    compareProfiles.b[key] = profile[key];
+  });
+}
+
 function refreshAllViews() {
   syncProfileInputs();
   applyUiState();
   renderAmplificationEditor();
   render();
+  renderDamage2();
   renderComparison();
   renderDefense();
   renderVerifier();
@@ -660,7 +943,16 @@ function hydrateForm() {
     input.value = profile[key];
     input.addEventListener("input", () => {
       profile[key] = input.type === "number" ? num(input.value) : input.value;
+      document.querySelectorAll("[data-key]").forEach((linkedInput) => {
+        if (linkedInput !== input && linkedInput.dataset.key === key) linkedInput.value = profile[key];
+      });
+      if (BASE_SETTING_KEYS.has(key)) {
+        syncBaseSettingsToComparison();
+        renderComparison();
+        renderDefense();
+      }
       render();
+      renderDamage2Results();
       queueAutoSave();
     });
   });
@@ -729,9 +1021,28 @@ document.querySelectorAll("[data-view-target]").forEach((button) => {
 
 document.querySelector("#reset-main").addEventListener("click", () => {
   profile = structuredClone(defaultProfile);
-  document.querySelectorAll("[data-key]").forEach((input) => { input.value = profile[input.dataset.key]; });
+  syncProfileInputs();
+  syncBaseSettingsToComparison();
   renderAmplificationEditor();
   render();
+  renderDamage2();
+  renderComparison();
+  renderDefense();
+  queueAutoSave();
+});
+document.querySelector("#reset-base-settings").addEventListener("click", () => {
+  Object.entries(BASE_SETTING_DEFAULTS).forEach(([key, value]) => { profile[key] = value; });
+  syncProfileInputs();
+  syncBaseSettingsToComparison();
+  render();
+  renderDamage2Results();
+  renderComparison();
+  renderDefense();
+  queueAutoSave();
+});
+document.querySelector("#reset-damage2").addEventListener("click", () => {
+  damage2State = structuredClone(DAMAGE2_DEFAULTS);
+  renderDamage2();
   queueAutoSave();
 });
 document.querySelector("#display-unit").addEventListener("change", () => {
@@ -855,6 +1166,7 @@ applyUiState();
 hydrateForm();
 renderAmplificationEditor();
 render();
+renderDamage2();
 renderComparison();
 renderDefense();
 renderVerifier();
@@ -864,5 +1176,5 @@ registerWebMcp();
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { calculate, defaultProfile, defaultDefense };
+  module.exports = { calculate, calculateDamage2, damage2Totals, defaultProfile, defaultDefense, BASE_SETTING_DEFAULTS, DAMAGE2_DEFAULTS };
 }

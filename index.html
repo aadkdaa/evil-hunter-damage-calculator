@@ -48,6 +48,7 @@
 
       <nav class="view-tabs" aria-label="계산기 메뉴">
         <button class="tab is-active" type="button" data-view-target="calculator">데미지 계산</button>
+        <button class="tab" type="button" data-view-target="calculator-2">데미지 계산 2</button>
         <button class="tab" type="button" data-view-target="base-settings">기본세팅</button>
         <button class="tab" type="button" data-view-target="comparison">설정 비교</button>
         <button class="tab" type="button" data-view-target="defense">방어력</button>
@@ -117,16 +118,6 @@
                     <select data-key="job">
                       <option>버서커</option><option>팔라딘</option><option>다크나이트</option><option>레인저</option><option>소서러</option>
                     </select>
-                  </label>
-                  <label class="field">
-                    <span>승전 순위</span>
-                    <select data-key="victoryRank">
-                      <option>1~3</option><option>4~10</option><option>11~20</option><option>순위 밖</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>지하던전 층수</span>
-                    <input data-key="dungeonFloor" inputmode="numeric" type="number" min="125" />
                   </label>
                 </div>
               </details>
@@ -299,32 +290,129 @@
           </div>
         </section>
 
+        <section class="view" id="calculator-2" data-view="calculator-2">
+          <div class="page-heading compact-page-heading">
+            <h1>데미지 계산 2</h1>
+            <button class="ghost-button" id="reset-damage2" type="button">기본값으로 초기화</button>
+          </div>
+
+          <div class="calculator-layout damage2-layout">
+            <div class="input-column" id="damage2-sections"></div>
+
+            <aside class="result-column" aria-live="polite">
+              <div class="result-hero">
+                <div class="result-label"><span class="status-dot"></span> 계산 결과</div>
+                <p>보스 기대 화력</p>
+                <strong id="damage2-hero-damage">0</strong>
+              </div>
+
+              <div class="metric-grid">
+                <article><span>PvE 공격력</span><strong id="damage2-pve-attack">0</strong></article>
+                <article><span>초당 공격력</span><strong id="damage2-pve-dps">0</strong></article>
+                <article><span>보스 일반 피해</span><strong id="damage2-boss-normal">0</strong></article>
+                <article><span>보스 치명타 피해</span><strong id="damage2-boss-crit">0</strong></article>
+              </div>
+
+              <section class="damage-board">
+                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>입력 수치 합계</b></div></div>
+                <div class="damage2-summary" id="damage2-summary"></div>
+              </section>
+            </aside>
+          </div>
+        </section>
+
         <section class="view" id="base-settings" data-view="base-settings">
           <div class="page-heading">
             <div>
               <p class="eyebrow">Account Base</p>
               <h1>기본세팅</h1>
-              <p>내 계정에서 변하지 않는 공용 수치를 한 번만 기록하는 공간입니다.</p>
+              <p>계정 공용 버프를 한 번 입력하면 데미지와 방어력 계산에 함께 반영됩니다.</p>
             </div>
-            <span class="feature-badge">준비 중</span>
+            <button class="ghost-button" id="reset-base-settings" type="button">현재 기본값으로 초기화</button>
           </div>
-          <div class="base-settings-preview">
-            <section class="tool-card base-settings-card">
-              <div class="tool-card-title"><span>01</span><div><b>계정 공용 수치</b><small>세부 항목은 전달받은 뒤 이곳에 추가합니다.</small></div></div>
-              <div class="base-settings-empty">
-                <div class="empty-emblem" aria-hidden="true">✦</div>
-                <div>
-                  <b>기본세팅 입력란이 들어갈 자리입니다</b>
-                  <p>도감, 건물, 연합, 펫처럼 헌터마다 반복해서 입력할 필요가 없는 수치를 모아둘 예정입니다.</p>
-                </div>
+          <div class="base-settings-grid" id="base-settings-form">
+            <section class="base-buff-card">
+              <div class="base-buff-heading"><span>01</span><div><b>승전 버프</b><small>현재 승전 순위 보너스</small></div></div>
+              <div class="base-buff-fields base-buff-fields-3">
+                <label class="field"><span>공격력</span><input data-key="victoryAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>체력</span><input data-key="victoryHealth" type="number" step="0.1" /></label>
+                <label class="field"><span>보스 피해</span><input data-key="victoryBoss" type="number" step="0.1" /></label>
               </div>
             </section>
-            <aside class="base-settings-flow">
-              <span>활용 방식</span>
-              <strong>한 번 입력 → 모든 계산에 자동 반영</strong>
-              <p>나중에 세부 수치를 추가하면 기본세팅 값이 데미지 계산, 설정 비교, 방어력 계산에 연결되도록 구성합니다.</p>
-              <div class="flow-chips"><span>자동 저장</span><span>계산기 연동</span><span>백업 포함</span></div>
-            </aside>
+
+            <section class="base-buff-card">
+              <div class="base-buff-heading"><span>02</span><div><b>연합 버프</b><small>연합에서 적용되는 공용 수치</small></div></div>
+              <div class="base-buff-fields base-buff-fields-3">
+                <label class="field"><span>공격력</span><input data-key="unionAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>방어력</span><input data-key="unionDefense" type="number" step="0.1" /></label>
+                <label class="field"><span>체력</span><input data-key="unionHealth" type="number" step="0.1" /></label>
+              </div>
+            </section>
+
+            <section class="base-buff-card">
+              <div class="base-buff-heading"><span>03</span><div><b>지하던전 버프</b><small>현재 층수에서 받는 공용 보너스</small></div></div>
+              <div class="base-buff-fields base-buff-fields-2">
+                <label class="field"><span>공격력</span><input data-key="dungeonAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>방어력</span><input data-key="dungeonDefense" type="number" step="0.1" /></label>
+              </div>
+            </section>
+
+            <section class="base-buff-card">
+              <div class="base-buff-heading"><span>04</span><div><b>건물 버프</b><small>마을 건물에서 받는 보너스</small></div></div>
+              <div class="base-buff-fields base-buff-fields-5">
+                <label class="field"><span>공격력</span><input data-key="buildingAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>방어력</span><input data-key="buildingDefense" type="number" step="0.1" /></label>
+                <label class="field"><span>체력</span><input data-key="buildingHealth" type="number" step="0.1" /></label>
+                <label class="field"><span>치명타 피해</span><input data-key="buildingCritDamage" type="number" step="0.1" /></label>
+                <label class="field"><span>이동속도</span><input data-key="buildingMove" type="number" step="0.1" /></label>
+              </div>
+            </section>
+
+            <section class="base-buff-card base-buff-card-wide">
+              <div class="base-buff-heading"><span>05</span><div><b>도감 버프</b><small>수집 도감에서 적용되는 계정 보너스</small></div></div>
+              <div class="base-buff-fields base-buff-fields-wide base-buff-fields-5">
+                <label class="field"><span>공격력</span><input data-key="collectionAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>방어력</span><input data-key="collectionDefense" type="number" step="0.1" /></label>
+                <label class="field"><span>체력</span><input data-key="collectionHealth" type="number" step="0.1" /></label>
+                <label class="field"><span>치명타 피해</span><input data-key="collectionCritDamage" type="number" step="0.1" /></label>
+                <label class="field field-row-start"><span>영장 피해</span><input data-key="collectionLord" type="number" step="0.1" /></label>
+                <label class="field"><span>악마 피해</span><input data-key="collectionDemon" type="number" step="0.1" /></label>
+                <label class="field"><span>언데드 피해</span><input data-key="collectionUndead" type="number" step="0.1" /></label>
+                <label class="field"><span>보스 피해</span><input data-key="collectionBoss" type="number" step="0.1" /></label>
+                <label class="field"><span>동물 피해</span><input data-key="collectionAnimal" type="number" step="0.1" /></label>
+              </div>
+            </section>
+
+            <section class="base-buff-card base-buff-card-wide">
+              <div class="base-buff-heading"><span>06</span><div><b>유물 버프</b><small>공용 스탯과 현재 직업에 맞는 피해 증폭</small></div></div>
+              <div class="base-buff-fields base-buff-fields-wide base-buff-fields-5">
+                <label class="field"><span>공격력</span><input data-key="artifactAttack" type="number" step="0.01" /></label>
+                <label class="field"><span>방어력</span><input data-key="artifactDefense" type="number" step="0.01" /></label>
+                <label class="field"><span>체력</span><input data-key="artifactHealth" type="number" step="0.01" /></label>
+                <label class="field"><span>치명타 피해</span><input data-key="artifactCritDamage" type="number" step="0.01" /></label>
+                <label class="field field-row-start"><span>영장 피해</span><input data-key="artifactLord" type="number" step="0.01" /></label>
+                <label class="field"><span>악마 피해</span><input data-key="artifactDemon" type="number" step="0.01" /></label>
+                <label class="field"><span>언데드 피해</span><input data-key="artifactUndead" type="number" step="0.01" /></label>
+                <label class="field"><span>보스 피해</span><input data-key="artifactBoss" type="number" step="0.01" /></label>
+                <label class="field"><span>동물 피해</span><input data-key="artifactAnimal" type="number" step="0.01" /></label>
+                <p class="base-buff-subheading">직업 피해 증폭</p>
+                <label class="field"><span>버서커</span><input data-key="artifactBerserkerAmp" type="number" step="0.01" /></label>
+                <label class="field"><span>팔라딘</span><input data-key="artifactPaladinAmp" type="number" step="0.01" /></label>
+                <label class="field"><span>레인저</span><input data-key="artifactRangerAmp" type="number" step="0.01" /></label>
+                <label class="field"><span>소서러</span><input data-key="artifactSorcererAmp" type="number" step="0.01" /></label>
+                <label class="field"><span>다크나이트</span><input data-key="artifactDarkKnightAmp" type="number" step="0.01" /></label>
+              </div>
+            </section>
+
+            <section class="base-buff-card">
+              <div class="base-buff-heading"><span>07</span><div><b>마을펫 버프</b><small>마을에 배치한 펫의 공용 보너스</small></div></div>
+              <div class="base-buff-fields base-buff-fields-3">
+                <label class="field"><span>공격력</span><input data-key="townPetAttack" type="number" step="0.1" /></label>
+                <label class="field"><span>방어력</span><input data-key="townPetDefense" type="number" step="0.1" /></label>
+                <label class="field"><span>체력</span><input data-key="townPetHealth" type="number" step="0.1" /></label>
+              </div>
+            </section>
+
           </div>
         </section>
 
