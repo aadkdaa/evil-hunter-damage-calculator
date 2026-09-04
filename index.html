@@ -51,8 +51,7 @@
         <button class="tab" type="button" data-view-target="calculator-2">데미지 계산 2</button>
         <button class="tab" type="button" data-view-target="base-settings">기본세팅</button>
         <button class="tab" type="button" data-view-target="comparison">설정 비교</button>
-        <button class="tab" type="button" data-view-target="defense">방어력</button>
-        <button class="tab" type="button" data-view-target="verifier">데미지 검증</button>
+        <!-- 방어력 화면은 정식 구현 전까지 메뉴에서 숨김 -->
         <button class="tab" type="button" data-view-target="storage">저장 / 로드</button>
       </nav>
 
@@ -301,20 +300,27 @@
 
             <aside class="result-column" aria-live="polite">
               <div class="result-hero">
-                <div class="result-label"><span class="status-dot"></span> 계산 결과</div>
-                <p>보스 기대 화력</p>
-                <strong id="damage2-hero-damage">0</strong>
+                <div class="result-label"><span class="status-dot"></span> 공격력 계산</div>
+                <p>마을 공격력</p>
+                <strong id="damage2-town-attack">0</strong>
               </div>
 
               <div class="metric-grid">
-                <article><span>PvE 공격력</span><strong id="damage2-pve-attack">0</strong></article>
-                <article><span>초당 공격력</span><strong id="damage2-pve-dps">0</strong></article>
-                <article><span>보스 일반 피해</span><strong id="damage2-boss-normal">0</strong></article>
-                <article><span>보스 치명타 피해</span><strong id="damage2-boss-crit">0</strong></article>
+                <article><span>콜로세움 공격력</span><strong id="damage2-arena-attack">0</strong></article>
+                <article><span>마을 초당 공격력</span><strong id="damage2-town-dps">0</strong></article>
+                <article><span>콜로세움 초당 공격력</span><strong id="damage2-arena-dps">0</strong></article>
+                <article><span>기초 공격력</span><strong id="damage2-base-attack">0</strong></article>
               </div>
 
+              <div class="damage2-validation" id="damage2-validation"></div>
+
               <section class="damage-board">
-                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>입력 수치 합계</b></div></div>
+                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>계산 그룹</b></div></div>
+                <div class="damage2-group-grid" id="damage2-formula-groups"></div>
+              </section>
+
+              <section class="damage-board">
+                <div class="section-title-row"><div><span class="mini-icon">✦</span><b>참고 스탯 합계</b></div></div>
                 <div class="damage2-summary" id="damage2-summary"></div>
               </section>
             </aside>
@@ -456,26 +462,6 @@
             </aside>
           </div>
         </section>
-        <section class="view" id="verifier" data-view="verifier">
-          <div class="page-heading">
-            <div><p class="eyebrow">Verifier</p><h1>데미지 검증기</h1><p>실제 데미지 두 개 이상을 넣어 공통으로 반복되는 기준값을 찾습니다.</p></div>
-            <button class="ghost-button" id="reset-verifier" type="button">입력 지우기</button>
-          </div>
-          <div class="verifier-layout">
-            <section class="tool-card">
-              <div class="tool-card-title"><span>01</span><div><b>실제 데미지 입력</b><small>게임에서 확인한 숫자를 2개 이상 입력하세요.</small></div></div>
-              <div class="verifier-controls">
-                <label class="field"><span>허용 오차</span><select id="verifier-error"><option value="10">10</option><option value="100">100</option><option value="1000">1,000</option></select></label>
-              </div>
-              <div class="verifier-inputs" id="verifier-inputs"></div>
-            </section>
-            <section class="tool-card verifier-results">
-              <div class="tool-card-title"><span>02</span><div><b>중복 기준값</b><small>여러 입력에서 공통으로 나타난 후보입니다.</small></div></div>
-              <div id="verifier-results"></div>
-            </section>
-          </div>
-        </section>
-
         <section class="view" id="storage" data-view="storage">
           <div class="page-heading">
             <div>
@@ -499,7 +485,7 @@
                 <div><span class="step">01</span><b>전체 백업 파일 만들기</b></div>
                 <small>JSON 파일</small>
               </div>
-              <p>데미지 계산, 비교, 방어력, 검증기에 입력한 모든 내용을 파일 하나에 담습니다.</p>
+              <p>현재 계산기에 입력한 모든 내용을 파일 하나에 담습니다.</p>
               <button class="primary-button storage-action" id="export-backup" type="button">전체 내용 다운로드</button>
             </section>
 

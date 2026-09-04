@@ -1,6 +1,6 @@
 const STORAGE_KEY = "evil-hunter-calculator-state-v3";
 const LEGACY_PROFILE_KEY = "evil-hunter-damage-profile";
-const STATE_VERSION = 4;
+const STATE_VERSION = 5;
 
 const BASE_SETTING_DEFAULTS = Object.freeze({
   victoryAttack: 12,
@@ -48,6 +48,15 @@ const BASE_SETTING_KEYS = new Set(Object.keys(BASE_SETTING_DEFAULTS));
 const DAMAGE2_DEFAULTS = Object.freeze({
   weaponAttack: 1742004,
   weaponSpeed: 2,
+  baseAttack: 1023.75,
+  sacredAttack: 90,
+  personalityAttack: 7,
+  personalityMove: 7,
+  heroAttack: 50,
+  unionArenaAttack: 5,
+  skillAttackAmp: 50,
+  gustRate: 10,
+  displayedAttack: 133905832,
   statHealth: 10,
   statAttack: 20,
   statDefense: 20,
@@ -89,6 +98,7 @@ const DAMAGE2_DEFAULTS = Object.freeze({
 
 const DAMAGE2_SECTIONS = [
   { title: "무기", fields: [["weaponAttack", "무기 공격력", ""], ["weaponSpeed", "무기 공격속도", ""]] },
+  { title: "공격력 계산값", fields: [["baseAttack", "헌터 고유공격력", ""], ["sacredAttack", "신강 공격력", "%"], ["personalityAttack", "성격 공격력", "%"], ["personalityMove", "성격 이동속도", "%"], ["heroAttack", "영웅스킬 공격력", "%"], ["unionArenaAttack", "연합 콜로세움 공격력", "%"], ["skillAttackAmp", "스킬 공격력 증폭", "%"], ["gustRate", "질풍 변환율", "%"], ["displayedAttack", "게임 표시 공격력", ""]] },
   { title: "헌터 스텟 등급 효과", fields: [["statAttack", "공격력", "%"], ["statDefense", "방어력", "%"], ["statHealth", "체력", "%"]] },
   { title: "헌터 등급 버프", fields: [["gradeAttack", "공격력", "%"], ["gradeDefense", "방어력", "%"], ["gradeHealth", "체력", "%"], ["gradeMove", "이동속도", "%"]] },
   { title: "코스튬 버프", fields: [["costumeAttack", "공격력", "%"], ["costumeHealth", "체력", "%"], ["costumeMove", "이동속도", "%"]] },
@@ -456,7 +466,46 @@ function damage2Totals(state = damage2State) {
 }
 
 function calculateDamage2(state = damage2State) {
-  return calculate(damage2Profile(state));
+  const baseAttack = num(state.weaponAttack) + 2 * num(state.baseAttack) * num(state.weaponSpeed);
+  const groupA = 1 + (num(profile.victoryAttack) + num(profile.dungeonAttack)) / 100;
+  const sharedHunterAttack = num(state.sacredAttack) + num(state.personalityAttack) + num(state.statAttack) +
+    num(state.gradeAttack) + num(state.secretAttack) + num(state.runeAttack) + num(state.gearAttack) + num(state.heroAttack);
+  const groupBTown = 1 + (sharedHunterAttack + num(profile.unionAttack)) / 100;
+  const groupBArena = 1 + (sharedHunterAttack + num(state.unionArenaAttack)) / 100;
+  const groupC = (num(profile.buildingAttack) + num(profile.townPetAttack)) / 100;
+  const groupD = 1 + (
+    num(state.costumeAttack) + num(profile.collectionAttack) + num(state.sealAttack) +
+    num(state.ridingAttack) + num(profile.artifactAttack)
+  ) / 100;
+  const groupE = 1 + num(state.fairyAttack) / 100;
+  const movementArena = num(state.gradeMove) + num(state.costumeMove) + num(state.sealMove) + num(state.ridingMove) +
+    num(state.personalityMove) + num(state.secretMove) + num(state.runeMove) + num(state.gearMove);
+  const movementTown = movementArena + num(profile.buildingMove);
+  const gustArena = Math.min(movementArena, 300) * num(state.gustRate) / 100;
+  const gustTown = Math.min(movementTown, 300) * num(state.gustRate) / 100;
+  const groupFArena = (1 + num(state.skillAttackAmp) / 100) * (1 + gustArena / 100);
+  const groupFTown = (1 + num(state.skillAttackAmp) / 100) * (1 + gustTown / 100);
+  const townAttack = baseAttack * groupA * (groupBTown + groupC) * groupD * groupE * groupFTown;
+  const arenaAttack = baseAttack * groupBArena * groupD * groupE * groupFArena;
+  const finalAttackInterval = 0.25;
+  const displayedAttack = num(state.displayedAttack);
+
+  return {
+    baseAttack,
+    townAttack,
+    arenaAttack,
+    townDps: townAttack / finalAttackInterval,
+    arenaDps: arenaAttack / finalAttackInterval,
+    finalAttackInterval,
+    movementTown,
+    movementArena,
+    gustTown,
+    gustArena,
+    displayedAttack,
+    difference: displayedAttack ? townAttack - displayedAttack : 0,
+    errorRate: displayedAttack ? (townAttack - displayedAttack) / displayedAttack * 100 : 0,
+    groups: { A: groupA, BTown: groupBTown, BArena: groupBArena, C: groupC, D: groupD, E: groupE, FTown: groupFTown, FArena: groupFArena },
+  };
 }
 
 function renderDamage2() {
@@ -496,15 +545,33 @@ function renderDamage2() {
 }
 
 function renderDamage2Results() {
-  const hero = document.querySelector("#damage2-hero-damage");
+  const hero = document.querySelector("#damage2-town-attack");
   if (!hero) return;
   const result = calculateDamage2();
   const totals = damage2Totals();
-  hero.textContent = formatNumber(result.rows.보스.expected);
-  document.querySelector("#damage2-pve-attack").textContent = formatNumber(result.pveAttack);
-  document.querySelector("#damage2-pve-dps").textContent = formatNumber(result.pveDps);
-  document.querySelector("#damage2-boss-normal").textContent = formatNumber(result.rows.보스.normal);
-  document.querySelector("#damage2-boss-crit").textContent = formatNumber(result.rows.보스.crit);
+  hero.textContent = formatNumber(Math.trunc(result.townAttack));
+  document.querySelector("#damage2-arena-attack").textContent = formatNumber(Math.trunc(result.arenaAttack));
+  document.querySelector("#damage2-town-dps").textContent = formatNumber(Math.trunc(result.townDps));
+  document.querySelector("#damage2-arena-dps").textContent = formatNumber(Math.trunc(result.arenaDps));
+  document.querySelector("#damage2-base-attack").textContent = formatNumber(result.baseAttack);
+  document.querySelector("#damage2-validation").innerHTML = result.displayedAttack ? `
+    <span>게임값 대비</span>
+    <strong class="${result.difference > 0 ? "is-plus" : result.difference < 0 ? "is-minus" : ""}">${result.difference > 0 ? "+" : ""}${formatNumber(Math.trunc(result.difference))} · ${result.errorRate > 0 ? "+" : ""}${result.errorRate.toFixed(2)}%</strong>
+  ` : `<span>게임 표시 공격력을 입력하면 오차를 확인할 수 있습니다.</span>`;
+  const groupRows = [
+    ["기초", result.baseAttack, ""],
+    ["A · 승전/지던", result.groups.A, "×"],
+    ["B · 헌터(마을)", result.groups.BTown, "×"],
+    ["B · 헌터(콜로)", result.groups.BArena, "×"],
+    ["C · 마을", result.groups.C, "+"],
+    ["D · 독립", result.groups.D, "×"],
+    ["E · 요정", result.groups.E, "×"],
+    ["F · 증폭(마을)", result.groups.FTown, "×"],
+    ["F · 증폭(콜로)", result.groups.FArena, "×"],
+  ];
+  document.querySelector("#damage2-formula-groups").innerHTML = groupRows.map(([label, value, prefix]) => `
+    <div class="damage2-group-row"><span>${label}</span><strong>${prefix}${prefix ? value.toFixed(4) : formatNumber(value)}</strong></div>
+  `).join("");
   const summaryRows = [
     ["공격력", totals.attack], ["방어력", totals.defense], ["체력", totals.health],
     ["치명타 피해", totals.critDamage], ["이동속도", totals.movement], ["영장 피해", totals.lord],
@@ -711,9 +778,7 @@ function renderDefense() {
   `;
 }
 
-const verifierCoefficients = [113, 110, 106, 105, 103, 100, 99, 98, 95, 92, 91, 90];
-let verifierDamages = [39004768, 39438156, ...Array(18).fill("")];
-let uiState = { activeView: "calculator", displayUnit: "1", verifierError: "10" };
+let uiState = { activeView: "calculator", displayUnit: "1" };
 let persistenceTimer = null;
 
 function mergeProfile(saved) {
@@ -789,25 +854,17 @@ function applyStoredState(saved) {
   syncBaseSettingsToComparison();
   defenseState = mergeDefense(saved.defense);
   damage2State = mergeDamage2(saved.damage2);
-  if (Array.isArray(saved.verifier?.damages)) {
-    verifierDamages = Array.from({ length: 20 }, (_, index) => {
-      const value = saved.verifier.damages[index];
-      return value === "" || value == null ? "" : num(value);
-    });
-  }
   const requestedView = typeof saved.ui?.activeView === "string" ? saved.ui.activeView : "calculator";
-  const validViews = ["calculator", "calculator-2", "base-settings", "comparison", "defense", "verifier", "storage"];
+  const validViews = ["calculator", "calculator-2", "base-settings", "comparison", "storage"];
   uiState = {
     activeView: validViews.includes(requestedView) ? requestedView : "calculator",
     displayUnit: ["1", "1000", "1000000", "1000000000"].includes(String(saved.ui?.displayUnit)) ? String(saved.ui.displayUnit) : "1",
-    verifierError: ["10", "100", "1000"].includes(String(saved.verifier?.error ?? saved.ui?.verifierError)) ? String(saved.verifier?.error ?? saved.ui?.verifierError) : "10",
   };
 }
 
 function currentAppState() {
   if (typeof document !== "undefined") {
     uiState.displayUnit = document.querySelector("#display-unit")?.value ?? uiState.displayUnit;
-    uiState.verifierError = document.querySelector("#verifier-error")?.value ?? uiState.verifierError;
     uiState.activeView = document.querySelector("[data-view-target].is-active")?.dataset.viewTarget ?? uiState.activeView;
   }
   return {
@@ -818,7 +875,6 @@ function currentAppState() {
     damage2: damage2State,
     comparison: compareProfiles,
     defense: defenseState,
-    verifier: { damages: verifierDamages, error: uiState.verifierError },
     ui: uiState,
   };
 }
@@ -861,7 +917,7 @@ function loadSavedState() {
     }
     const legacyProfile = localStorage.getItem(LEGACY_PROFILE_KEY);
     if (legacyProfile) {
-      applyStoredState({ profile: JSON.parse(legacyProfile), comparison: {}, defense: defaultDefense, verifier: {} });
+      applyStoredState({ profile: JSON.parse(legacyProfile), comparison: {}, defense: defaultDefense });
       return true;
     }
   } catch {
@@ -872,9 +928,7 @@ function loadSavedState() {
 
 function applyUiState() {
   const unit = document.querySelector("#display-unit");
-  const error = document.querySelector("#verifier-error");
   if (unit) unit.value = uiState.displayUnit;
-  if (error) error.value = uiState.verifierError;
   document.querySelectorAll("[data-view-target]").forEach((tab) => tab.classList.toggle("is-active", tab.dataset.viewTarget === uiState.activeView));
   document.querySelectorAll("[data-view]").forEach((view) => view.classList.toggle("is-active", view.dataset.view === uiState.activeView));
 }
@@ -898,7 +952,6 @@ function refreshAllViews() {
   renderDamage2();
   renderComparison();
   renderDefense();
-  renderVerifier();
 }
 
 function showStorageMessage(type, title, copy) {
@@ -907,34 +960,6 @@ function showStorageMessage(type, title, copy) {
   message.classList.toggle("is-success", type === "success");
   message.classList.toggle("is-error", type === "error");
   message.innerHTML = `<b>${escapeHtml(title)}</b><span>${escapeHtml(copy)}</span>`;
-}
-
-function renderVerifier() {
-  const inputs = document.querySelector("#verifier-inputs");
-  if (!inputs.dataset.ready) {
-    inputs.innerHTML = verifierDamages.map((_, index) => `<label class="verifier-input"><span>${index + 1}</span><input type="number" min="0" inputmode="numeric" data-verifier-index="${index}" placeholder="실제 데미지"></label>`).join("");
-    inputs.dataset.ready = "true";
-    inputs.querySelectorAll("[data-verifier-index]").forEach((input) => {
-      input.addEventListener("input", () => {
-        verifierDamages[Number(input.dataset.verifierIndex)] = input.value === "" ? "" : num(input.value);
-        renderVerifier();
-        queueAutoSave();
-      });
-    });
-  }
-  inputs.querySelectorAll("[data-verifier-index]").forEach((input) => { input.value = verifierDamages[Number(input.dataset.verifierIndex)]; });
-
-  const error = num(document.querySelector("#verifier-error").value) || 10;
-  const values = verifierDamages.filter((value) => num(value) > 0);
-  const counts = new Map();
-  values.forEach((damage) => verifierCoefficients.forEach((coefficient) => {
-    const candidate = Math.trunc(num(damage) / coefficient / error);
-    counts.set(candidate, (counts.get(candidate) || 0) + 1);
-  }));
-  const candidates = [...counts.entries()].filter(([, count]) => count >= 2).sort((a, b) => b[0] - a[0]).slice(0, 20);
-  document.querySelector("#verifier-results").innerHTML = candidates.length ? candidates.map(([candidate, count], index) => `
-    <article class="candidate-card"><span class="candidate-rank">${index + 1}</span><div><b>${formatNumber(candidate)}</b><small>113 기준 복원값 ${formatNumber(candidate * 113)}</small></div><strong>${count}회 반복</strong></article>
-  `).join("") : `<div class="candidate-empty"><b>공통 후보가 없습니다</b><span>실제 데미지를 2개 이상 입력해 주세요.</span></div>`;
 }
 
 function hydrateForm() {
@@ -960,6 +985,7 @@ function hydrateForm() {
 
 if (typeof document !== "undefined") {
 const ACCESS_CODE_HASH = "f6f2ea8f45d8a057c9566a33f99474da2e5c6a6604d736121650e2730c6fb0a3";
+const IS_LOCAL_PREVIEW = ["127.0.0.1", "localhost", "::1"].includes(window.location.hostname);
 
 async function hashAccessCode(value) {
   const data = new TextEncoder().encode(value);
@@ -987,10 +1013,14 @@ function lockCalculator() {
   window.setTimeout(() => document.querySelector("#access-code").focus(), 50);
 }
 
-let accessGranted = false;
-try { accessGranted = sessionStorage.getItem("hunter-calculator-access") === "granted"; } catch {}
+let accessGranted = IS_LOCAL_PREVIEW;
+if (!accessGranted) {
+  try { accessGranted = sessionStorage.getItem("hunter-calculator-access") === "granted"; } catch {}
+}
 if (accessGranted) unlockCalculator();
 else lockCalculator();
+
+if (IS_LOCAL_PREVIEW) document.querySelector("#lock-app").hidden = true;
 
 document.querySelector("#access-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -1076,17 +1106,6 @@ document.querySelector("#reset-defense").addEventListener("click", () => {
   renderDefense();
   queueAutoSave();
 });
-document.querySelector("#verifier-error").addEventListener("change", () => {
-  uiState.verifierError = document.querySelector("#verifier-error").value;
-  renderVerifier();
-  queueAutoSave();
-});
-document.querySelector("#reset-verifier").addEventListener("click", () => {
-  verifierDamages = Array(20).fill("");
-  renderVerifier();
-  queueAutoSave();
-});
-
 document.querySelector("#export-backup").addEventListener("click", () => {
   const state = currentAppState();
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json;charset=utf-8" });
